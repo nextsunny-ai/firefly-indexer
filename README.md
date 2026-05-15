@@ -2,7 +2,7 @@
 
 Adobe Firefly training-data indexer — turn a folder of photos into a structured Excel index ready for Adobe Firefly model training.
 
-Made by **SUNNY (Yu Hee-jung)** · © 2026.
+© 2026 SUNNY ENTERTAINMENT.
 
 ---
 
@@ -39,4 +39,4 @@ Cross-platform builds run automatically via GitHub Actions on tag push (`v*`).
 
 ---
 
-© 2026 SUNNY. All rights reserved.
+© 2026 SUNNY ENTERTAINMENT. All rights reserved.
