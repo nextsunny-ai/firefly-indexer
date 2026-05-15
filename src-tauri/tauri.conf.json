@@ -1,0 +1,63 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Firefly Indexer",
+  "version": "0.1.0",
+  "identifier": "com.sunnytoon.firefly-indexer",
+  "build": {
+    "frontendDist": "../frontend",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Firefly Indexer",
+        "label": "main",
+        "width": 1280,
+        "height": 880,
+        "minWidth": 1000,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi", "app", "dmg"],
+    "createUpdaterArtifacts": false,
+    "publisher": "SUNNY (Yu Hee-jung)",
+    "copyright": "Copyright © 2026 SUNNY. All rights reserved.",
+    "homepage": "https://sunnytoon.com",
+    "category": "Productivity",
+    "shortDescription": "Adobe Firefly training-data indexer by SUNNY.",
+    "longDescription": "Index a folder of training photos into the Adobe Firefly Excel format. Made by SUNNY (Yu Hee-jung).",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["Korean", "English"],
+        "displayLanguageSelector": false
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  },
+  "plugins": {}
+}

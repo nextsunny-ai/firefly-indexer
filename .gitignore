@@ -1,0 +1,35 @@
+# Build outputs
+src-tauri/target/
+src-tauri/gen/
+node_modules/
+dist/
+
+# Tauri signing keys — NEVER commit
+src-tauri/.keys/
+*.key
+*.key.pub
+*.sig
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Local secrets
+.env
+.env.local
+*.local
+
+# Cached test/run output
+data/output/*.xlsx
+data/output/*.progress.json
+data/_renamed_backup/
+data/eval_reports/
+
+# Logs
+*.log

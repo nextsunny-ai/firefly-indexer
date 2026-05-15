@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adobe Firefly Indexer</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
+<body>
+  <!-- ── TOP NAV ──────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__brand">
+        <span class="brand__mono">FIREFLY · INDEXER</span>
+        <span class="brand__rule"></span>
+        <span class="brand__mono brand__mono--dim">v0.1 · ALPHA</span>
+      </div>
+      <nav class="topbar__nav">
+        <button type="button" class="nav-btn nav-btn--active" data-page="indexer">Index</button>
+        <button type="button" class="nav-btn" data-page="validate">Recheck</button>
+        <button type="button" class="nav-btn" data-page="rename">Rename</button>
+        <button type="button" class="nav-btn" data-page="setup">Setup</button>
+      </nav>
+      <div class="topbar__status" id="cli-status">
+        <span class="status__dot" data-state="unknown"></span>
+        <span class="status__text">checking…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN PAGE: INDEXER (single screen) ─────────────────────── -->
+  <main class="page" id="page-indexer">
+    <div class="hero">
+      <h1 class="hero__title">Adobe Firefly Indexer</h1>
+      <p class="hero__sub">사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.</p>
+    </div>
+
+    <div class="banner banner--warn" id="setup-banner" hidden>
+      <span class="banner__icon">!</span>
+      <div class="banner__body">
+        <strong id="setup-banner-title">Claude Code 셋업이 필요합니다.</strong>
+        <span class="banner__sub" id="setup-banner-sub">한 번만 설치·로그인하면 다음부터 자동으로 작동합니다.</span>
+      </div>
+      <button type="button" class="btn btn--secondary banner__action" id="goto-setup-btn">Setup으로 →</button>
+    </div>
+
+    <section class="card card--main">
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">입력 폴더</label>
+          <div class="field__row">
+            <input class="field__input" id="input-folder" type="text" placeholder="사진들이 들어있는 폴더 경로" />
+            <button type="button" class="btn btn--secondary" id="pick-input">찾기…</button>
+          </div>
+          <p class="field__hint" id="scan-hint">— 폴더를 선택하면 자동 스캔합니다.</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">출력 Excel</label>
+          <div class="field__row">
+            <input class="field__input" id="output-xlsx" type="text" placeholder="자동 제안됨" />
+            <button type="button" class="btn btn--secondary" id="pick-output">찾기…</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="advanced">
+        <summary>고급 설정</summary>
+        <div class="opt-grid">
+          <div class="field">
+            <label class="field__label">씬당 사진 수</label>
+            <input id="scene-size" type="number" min="2" max="20" value="6" />
+          </div>
+          <div class="field">
+            <label class="field__label">모델</label>
+            <select id="model">
+              <option value="haiku">Haiku 4.5 · 빠름 (추천)</option>
+              <option value="sonnet">Sonnet 4.6 · 정확</option>
+              <option value="opus">Opus 4.7 · 최강</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">씬당 타임아웃 (s)</label>
+            <input id="timeout" type="number" min="60" max="1800" value="600" />
+          </div>
+          <div class="checkbox checkbox--inline">
+            <input type="checkbox" id="resume" />
+            <label for="resume">이어 실행 (= 옛 중단 batch 자동 재개)</label>
+          </div>
+        </div>
+      </details>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary btn--lg" id="start-indexing" disabled>인덱싱 시작</button>
+        <button type="button" class="btn btn--secondary" id="stop-indexing" disabled>중단</button>
+        <div class="action-bar__spacer"></div>
+        <button type="button" class="btn btn--secondary" id="goto-validate" disabled>Recheck →</button>
+        <button type="button" class="btn btn--secondary" id="open-xlsx" disabled>결과 Excel 열기</button>
+        <button type="button" class="btn btn--ghost" id="open-folder" disabled>출력 폴더 열기</button>
+      </div>
+
+      <div class="run-status" id="run-status" hidden>
+        <div class="run-status__head">
+          <span class="mono" id="run-counter">0 / 0 씬</span>
+          <span class="mono mono--dim" id="run-cost">$0.0000</span>
+        </div>
+        <div class="progress">
+          <div class="progress__bar" id="progress-bar"></div>
+        </div>
+
+        <div class="substep" id="substep" hidden>
+          <div class="substep__head">
+            <span class="mono" id="substep-scene">scene —</span>
+            <span class="mono mono--dim" id="substep-counter">0 / 0</span>
+          </div>
+          <ul class="substep__list" id="substep-list"></ul>
+        </div>
+      </div>
+
+      <pre class="log" id="log" hidden></pre>
+    </section>
+  </main>
+
+  <!-- ── PAGE: VALIDATE ─────────────────────────────────────────── -->
+  <main class="page" id="page-validate" hidden>
+    <div class="hero">
+      <h1 class="hero__title">Recheck</h1>
+      <p class="hero__sub">생성된 프롬프트가 정확한지 자동 재확인.</p>
+    </div>
+
+    <section class="card">
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">검증할 Excel</label>
+          <div class="field__row">
+            <input class="field__input" id="val-xlsx" type="text" placeholder="인덱싱 결과 Excel" />
+            <button type="button" class="btn btn--secondary" id="val-pick-xlsx">찾기…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary btn--lg" id="run-validate" disabled>빠른 재확인 (양식·표현)</button>
+      </div>
+    </section>
+
+    <section class="card" id="vision-eval-card">
+      <div class="card__head">
+        <span class="card__step">+</span>
+        <h2 class="card__title">사진 vs 묘사 재확인 (= 진짜 round-trip)</h2>
+        <span class="badge" data-state="warn">시간 ↑</span>
+      </div>
+      <p class="card__body">
+        Excel의 caption을 원본 사진과 비교 = 일치도 0~100점 자체 평가.
+      </p>
+
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">원본 사진 폴더 (= Excel의 filename ↔ 사진 매핑)</label>
+          <div class="field__row">
+            <input class="field__input" id="ve-folder" type="text" placeholder="ASCII 경로 — 인덱싱 입력 폴더와 같으면 OK" />
+            <button type="button" class="btn btn--secondary" id="ve-pick-folder">찾기…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt-grid">
+        <div class="field">
+          <label class="field__label">모드</label>
+          <select id="ve-mode">
+            <option value="quick">빠른 (10% 무작위 샘플)</option>
+            <option value="all">전체 (모든 row)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label">모델</label>
+          <select id="ve-model">
+            <option value="haiku">Haiku 4.5</option>
+            <option value="sonnet">Sonnet 4.6</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label">예상 시간</label>
+          <input id="ve-estimate" type="text" value="—" readonly />
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary btn--lg" id="run-vision-eval" disabled>사진 vs 묘사 재확인 시작</button>
+        <button type="button" class="btn btn--secondary" id="stop-vision-eval" disabled>중단</button>
+        <div class="action-bar__spacer"></div>
+        <span class="mono mono--dim" id="ve-meta"></span>
+      </div>
+
+      <div class="run-status" id="ve-status" hidden>
+        <div class="progress">
+          <div class="progress__bar" id="ve-progress-bar"></div>
+        </div>
+        <div class="run-status__head">
+          <span class="mono" id="ve-counter">0 / 0</span>
+          <span class="mono mono--dim" id="ve-avg">avg —</span>
+        </div>
+        <pre class="log" id="ve-log"></pre>
+      </div>
+
+      <div class="eval-report" id="eval-report" hidden>
+        <div class="score-grid">
+          <div class="score">
+            <span class="mono mono--dim">FORM</span>
+            <span class="score__val" id="score-form">—</span>
+            <span class="mono mono--dim" id="score-form-detail"></span>
+          </div>
+          <div class="score">
+            <span class="mono mono--dim">SLOP HITS</span>
+            <span class="score__val" id="score-slop">—</span>
+            <span class="mono mono--dim">phrases</span>
+          </div>
+        </div>
+
+        <details class="report-block" id="report-form" open>
+          <summary>양식 오류</summary>
+          <div class="report-list" id="report-form-list"></div>
+        </details>
+        <details class="report-block" id="report-slop">
+          <summary>표현 반복 감지</summary>
+          <div class="report-list" id="report-slop-list"></div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── PAGE: NAMING (별도 메뉴) ────────────────────────────────── -->
+  <main class="page" id="page-rename" hidden>
+    <div class="hero">
+      <h1 class="hero__title">Rename</h1>
+      <p class="hero__sub">표준 패턴(<code>26Q2_CK_M3_3_00001.jpg</code>)이 아닌 파일을 일괄로 사본 폴더에 정정합니다. 원본은 절대 수정되지 않습니다.</p>
+    </div>
+
+    <section class="card">
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">검사할 폴더</label>
+          <div class="field__row">
+            <input class="field__input" id="rn-folder" type="text" placeholder="ASCII 경로" />
+            <button type="button" class="btn btn--secondary" id="rn-pick-folder">찾기…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="scan-report" id="rn-report" hidden>
+        <div class="scan-report__row"><span class="mono">TOTAL</span><span id="rn-total">—</span></div>
+        <div class="scan-report__row"><span class="mono">CONFORMING</span><span id="rn-conform">—</span></div>
+        <div class="scan-report__row scan-report__row--warn" id="rn-row-noncon" hidden>
+          <span class="mono">NON-CONFORMING</span><span id="rn-noncon">—</span>
+        </div>
+      </div>
+
+      <div class="rename-grid">
+        <div class="field"><label class="field__label">PROJECT</label><input id="rn-project" type="text" value="26Q2" /></div>
+        <div class="field"><label class="field__label">SEQ</label><input id="rn-seq" type="text" value="XX" /></div>
+        <div class="field"><label class="field__label">MODULE</label><input id="rn-module" type="number" value="3" min="1" /></div>
+        <div class="field"><label class="field__label">VER</label><input id="rn-ver" type="number" value="1" min="1" /></div>
+        <div class="field"><label class="field__label">START</label><input id="rn-start" type="number" value="1" min="1" /></div>
+        <div class="field"><label class="field__label">자릿수</label><input id="rn-width" type="number" value="5" min="3" max="8" /></div>
+      </div>
+
+      <div class="checkbox">
+        <input type="checkbox" id="rn-only-non" checked />
+        <label for="rn-only-non">비표준 파일만 정정 (표준 파일은 그대로 두기)</label>
+      </div>
+
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label">사본 폴더 (출력)</label>
+          <div class="field__row">
+            <input class="field__input" id="rn-output" type="text" placeholder="자동 제안됨" />
+            <button type="button" class="btn btn--secondary" id="rn-pick-output">찾기…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary" id="run-rename" disabled>사본 폴더로 일괄 정정</button>
+        <div class="action-bar__spacer"></div>
+        <button type="button" class="btn btn--ghost" id="rn-open-result" disabled>결과 폴더 열기</button>
+      </div>
+
+      <pre class="log" id="rn-log" hidden></pre>
+    </section>
+  </main>
+
+  <!-- ── PAGE: SETUP (Claude CLI 준비) ───────────────────────────── -->
+  <main class="page" id="page-setup" hidden>
+    <div class="hero">
+      <h1 class="hero__title">Setup</h1>
+      <p class="hero__sub">본 도구는 본인 PC의 Claude Code CLI로 작동합니다.</p>
+    </div>
+
+    <section class="card">
+      <div class="card__head">
+        <span class="card__step">01</span>
+        <h2 class="card__title">Claude Code CLI 설치</h2>
+        <span class="badge" id="badge-install">CHECKING</span>
+      </div>
+      <p class="card__body">터미널에서 아래 한 줄을 실행하세요 (Node.js 18+ 필요)</p>
+      <pre class="code">npm install -g @anthropic-ai/claude-code</pre>
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary" id="run-install">터미널 자동 실행</button>
+        <button type="button" class="btn btn--ghost" id="recheck-install">다시 체크</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <span class="card__step">02</span>
+        <h2 class="card__title">Pro / Max 로그인</h2>
+        <span class="badge" id="badge-login">CHECKING</span>
+      </div>
+      <p class="card__body">새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.</p>
+      <pre class="code">claude /login</pre>
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary" id="run-login">터미널 자동 실행 (브라우저 OAuth 자동 열림)</button>
+        <button type="button" class="btn btn--ghost" id="recheck-login">로그인 상태 다시 체크</button>
+      </div>
+    </section>
+
+    <section class="card" id="setup-done-card" hidden>
+      <div class="card__head">
+        <h2 class="card__title" style="color: var(--success);">✓ 셋업 완료</h2>
+      </div>
+      <p class="card__body">모두 준비됐습니다. Index 페이지에서 인덱싱을 시작하세요.</p>
+      <div class="action-bar">
+        <button type="button" class="btn btn--primary" id="setup-go-index">Index로 이동 →</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <h2 class="card__title">이미 설치·로그인 했는데 위 체크가 실패한다면</h2>
+      </div>
+      <p class="card__body">PATH 미반영·자동 감지 실패일 수 있습니다. 본인이 이미 셋업을 마친 게 확실하면 아래 버튼으로 자동 체크를 무시하고 Index로 진행하세요. 다음 실행부터 영구 적용됩니다.</p>
+      <div class="action-bar">
+        <button type="button" class="btn btn--secondary" id="manual-override">자동 체크 무시하고 진행</button>
+        <button type="button" class="btn btn--ghost" id="manual-reset" hidden>무시 해제</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footbar">
+    <div class="footbar__inner">
+      <span class="mono mono--dim">© 2026 SUNNY · Made by 유희정</span>
+      <span class="mono mono--dim">FIREFLY INDEXER · v0.1</span>
+    </div>
+  </footer>
+
+  <script src="./assets/app.js" type="module"></script>
+</body>
+</html>
