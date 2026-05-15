@@ -49,48 +49,58 @@
     footer { border-top: 1px solid var(--divider); padding: 32px 0; margin-top: 96px; }
     .footbar { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
     .mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; color: var(--subtle); }
+    .lang-toggle { display: inline-flex; align-items: center; gap: 4px; }
+    .lang-btn { appearance: none; border: 1px solid var(--divider2); background: var(--surface); color: var(--muted);
+      font-family: var(--sans); font-size: 12px; padding: 6px 12px; border-radius: 4px; cursor: pointer;
+      transition: background 150ms, color 150ms; }
+    .lang-btn:hover { color: var(--fg); }
+    .lang-btn--active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="topbar__inner">
       <span class="brand">FIREFLY · INDEXER &nbsp; <span class="dim">DOWNLOAD</span></span>
-      <span class="mono">v0.1 · ALPHA</span>
+      <div class="lang-toggle">
+        <button type="button" class="lang-btn lang-btn--active" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="ko">한국어</button>
+        <span class="mono" style="margin-left:16px;">v0.1 · ALPHA</span>
+      </div>
     </div>
   </header>
 
   <section class="hero">
-    <h1>Adobe Firefly Indexer</h1>
-    <p>사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.</p>
+    <h1 data-i18n="hero_title">Adobe Firefly Indexer</h1>
+    <p data-i18n="hero_sub">Auto-generate per-photo descriptions and edit prompts (remove, move, etc.) → Adobe Firefly training-data Excel.</p>
   </section>
 
   <section class="grid">
     <article class="card">
       <span class="card__os">WINDOWS · 10 / 11</span>
       <h2 class="card__title">Windows</h2>
-      <p class="card__body">.exe installer · 더블클릭 설치 · 바탕 단축 아이콘 자동.</p>
+      <p class="card__body" data-i18n="win_body">.exe installer · double-click to install · desktop shortcut included.</p>
       <div class="row">
-        <a class="btn" id="dl-win" href="#" target="_blank">Download for Windows</a>
+        <a class="btn" id="dl-win" href="#" target="_blank" data-i18n="win_btn">Download for Windows</a>
         <a class="btn btn--ghost" id="dl-win-msi" href="#" target="_blank">.msi</a>
       </div>
     </article>
     <article class="card">
       <span class="card__os">macOS · 11+</span>
       <h2 class="card__title">macOS</h2>
-      <p class="card__body">.dmg · Apple Silicon · Intel 분리.</p>
+      <p class="card__body" data-i18n="mac_body">.dmg · separate builds for Apple Silicon and Intel.</p>
       <div class="row">
-        <a class="btn" id="dl-mac-arm" href="#" target="_blank">Download · Apple Silicon</a>
-        <a class="btn btn--ghost" id="dl-mac-x64" href="#" target="_blank">Intel</a>
+        <a class="btn" id="dl-mac-arm" href="#" target="_blank" data-i18n="mac_btn_arm">Download · Apple Silicon</a>
+        <a class="btn btn--ghost" id="dl-mac-x64" href="#" target="_blank" data-i18n="mac_btn_intel">Intel</a>
       </div>
     </article>
   </section>
 
   <section class="info">
-    <h3>처음 설치 시</h3>
+    <h3 data-i18n="setup_title">First-time setup</h3>
     <ol>
-      <li>다운로드 + 더블클릭 설치</li>
-      <li>앱 안 <strong>Setup</strong> 페이지 → <code>npm install -g @anthropic-ai/claude-code</code> 자동 실행 → 본인 Pro/Max 로그인</li>
-      <li>완료. <strong>Index</strong> 페이지에서 폴더 선택 → 인덱싱 시작.</li>
+      <li data-i18n="setup_step1">Download and double-click to install.</li>
+      <li data-i18n="setup_step2" data-i18n-html="true">Open the <strong>Setup</strong> page inside the app → run <code>npm install -g @anthropic-ai/claude-code</code> with one click → sign in with your Claude Pro/Max account.</li>
+      <li data-i18n="setup_step3" data-i18n-html="true">Done. Pick a folder on the <strong>Index</strong> page and start indexing.</li>
     </ol>
   </section>
 
@@ -102,6 +112,59 @@
   </footer>
 
   <script>
+    // ── i18n (EN / KO) ─────────────────────────────────────────────
+    const I18N = {
+      en: {
+        hero_title: "Adobe Firefly Indexer",
+        hero_sub:   "Auto-generate per-photo descriptions and edit prompts (remove, move, etc.) → Adobe Firefly training-data Excel.",
+        win_body:   ".exe installer · double-click to install · desktop shortcut included.",
+        win_btn:    "Download for Windows",
+        mac_body:   ".dmg · separate builds for Apple Silicon and Intel.",
+        mac_btn_arm:"Download · Apple Silicon",
+        mac_btn_intel:"Intel",
+        setup_title:"First-time setup",
+        setup_step1:"Download and double-click to install.",
+        setup_step2:'Open the <strong>Setup</strong> page inside the app → run <code>npm install -g @anthropic-ai/claude-code</code> with one click → sign in with your Claude Pro/Max account.',
+        setup_step3:'Done. Pick a folder on the <strong>Index</strong> page and start indexing.',
+      },
+      ko: {
+        hero_title: "Adobe Firefly Indexer",
+        hero_sub:   "사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.",
+        win_body:   ".exe 설치 파일 · 더블클릭 설치 · 바탕화면 단축 아이콘 포함.",
+        win_btn:    "Windows 다운로드",
+        mac_body:   ".dmg · Apple Silicon과 Intel용으로 분리 빌드.",
+        mac_btn_arm:"다운로드 · Apple Silicon",
+        mac_btn_intel:"Intel",
+        setup_title:"처음 설치 시",
+        setup_step1:"다운로드 후 더블클릭으로 설치.",
+        setup_step2:'앱 안의 <strong>Setup</strong> 페이지 → <code>npm install -g @anthropic-ai/claude-code</code> 자동 실행 → 본인 Claude Pro/Max 계정으로 로그인.',
+        setup_step3:'완료. <strong>Index</strong> 페이지에서 폴더 선택 → 인덱싱 시작.',
+      },
+    };
+    const LANG_KEY = "firefly_indexer_lang";
+    function applyLang(lang) {
+      const dict = I18N[lang] || I18N.en;
+      document.documentElement.lang = lang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        const val = dict[key];
+        if (val == null) return;
+        if (el.hasAttribute("data-i18n-html")) el.innerHTML = val;
+        else el.textContent = val;
+      });
+      document.querySelectorAll(".lang-btn").forEach((b) =>
+        b.classList.toggle("lang-btn--active", b.dataset.lang === lang));
+      try { localStorage.setItem(LANG_KEY, lang); } catch {}
+    }
+    document.querySelectorAll(".lang-btn").forEach((b) => {
+      b.addEventListener("click", () => applyLang(b.dataset.lang));
+    });
+    try {
+      const saved = localStorage.getItem(LANG_KEY);
+      if (saved) applyLang(saved);
+      else if ((navigator.language || "").startsWith("ko")) applyLang("ko");
+    } catch {}
+
     // Auto-fill latest release asset URLs from GitHub API.
     // For a private repo, the asset URLs require auth — so this page
     // expects to be re-deployed to Vercel where a serverless function
