@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firefly Indexer · Download</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+  <style>
+    :root {
+      --bg: #FAFAFA; --surface: #FFFFFF; --elevated: #F5F5F7;
+      --fg: #0A0A0E; --fg2: #1F2937; --muted: #6B7280; --subtle: #9CA3AF;
+      --divider: #E5E7EB; --divider2: #D1D5DB;
+      --accent: oklch(0.45 0.12 240);
+      --sans: "Pretendard Variable", Pretendard, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--divider); }
+    .topbar__inner { max-width: 1100px; margin: 0 auto; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg); }
+    .brand .dim { color: var(--subtle); }
+
+    .hero { max-width: 1100px; margin: 0 auto; padding: 96px 24px 64px; }
+    .hero h1 { margin: 0 0 16px; font-size: clamp(40px, 5vw, 64px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+    .hero p { margin: 0; font-size: 18px; color: var(--muted); max-width: 60ch; line-height: 1.6; }
+
+    .grid { max-width: 1100px; margin: 0 auto; padding: 0 24px 64px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--divider); border-radius: 8px; padding: 32px; display: grid; gap: 16px; }
+    .card__os { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--subtle); }
+    .card__title { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+    .card__body { margin: 0; color: var(--fg2); font-size: 14px; line-height: 1.6; }
+    .btn { appearance: none; border: 0; padding: 14px 24px; font-family: var(--sans); font-weight: 600; font-size: 15px;
+           background: var(--fg); color: var(--bg); border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; text-align: center;
+           transition: background 150ms cubic-bezier(0.16,1,0.3,1); }
+    .btn:hover { background: #000; }
+    .btn--ghost { background: transparent; color: var(--fg); border: 1px solid var(--divider2); }
+    .btn--ghost:hover { background: var(--elevated); }
+
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .info { max-width: 1100px; margin: 0 auto; padding: 32px 24px 96px; color: var(--muted); }
+    .info ol { padding-left: 20px; line-height: 1.8; }
+    .info code { font-family: var(--mono); font-size: 12px; background: var(--elevated); padding: 2px 6px; border-radius: 4px; }
+
+    footer { border-top: 1px solid var(--divider); padding: 32px 0; margin-top: 96px; }
+    .footbar { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; color: var(--subtle); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <span class="brand">FIREFLY · INDEXER &nbsp; <span class="dim">DOWNLOAD</span></span>
+      <span class="mono">v0.1 · ALPHA</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Adobe Firefly Indexer</h1>
+    <p>사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.</p>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <span class="card__os">WINDOWS · 10 / 11</span>
+      <h2 class="card__title">Windows</h2>
+      <p class="card__body">.exe installer · 더블클릭 설치 · 바탕 단축 아이콘 자동.</p>
+      <div class="row">
+        <a class="btn" id="dl-win" href="#" target="_blank">Download for Windows</a>
+        <a class="btn btn--ghost" id="dl-win-msi" href="#" target="_blank">.msi</a>
+      </div>
+    </article>
+    <article class="card">
+      <span class="card__os">macOS · 11+</span>
+      <h2 class="card__title">macOS</h2>
+      <p class="card__body">.dmg · Apple Silicon · Intel 분리.</p>
+      <div class="row">
+        <a class="btn" id="dl-mac-arm" href="#" target="_blank">Download · Apple Silicon</a>
+        <a class="btn btn--ghost" id="dl-mac-x64" href="#" target="_blank">Intel</a>
+      </div>
+    </article>
+  </section>
+
+  <section class="info">
+    <h3>처음 설치 시</h3>
+    <ol>
+      <li>다운로드 + 더블클릭 설치</li>
+      <li>앱 안 <strong>Setup</strong> 페이지 → <code>npm install -g @anthropic-ai/claude-code</code> 자동 실행 → 본인 Pro/Max 로그인</li>
+      <li>완료. <strong>Index</strong> 페이지에서 폴더 선택 → 인덱싱 시작.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <div class="footbar">
+      <span class="mono">© 2026 SUNNY · Made by 유희정</span>
+      <span class="mono">FIREFLY INDEXER</span>
+    </div>
+  </footer>
+
+  <script>
+    // Auto-fill latest release asset URLs from GitHub API.
+    // For a private repo, the asset URLs require auth — so this page
+    // expects to be re-deployed to Vercel where a serverless function
+    // exposes signed redirect URLs. For now, this just fetches the
+    // latest release tag (public if repo is public) or falls back.
+    (async function () {
+      try {
+        const r = await fetch("https://api.github.com/repos/nextsunny-ai/firefly-indexer/releases/latest");
+        if (!r.ok) return;
+        const j = await r.json();
+        const find = (matcher) => (j.assets || []).find((a) => matcher.test(a.name));
+        const map = {
+          "dl-win":      find(/setup.*\.exe$|\.exe$/i),
+          "dl-win-msi":  find(/\.msi$/i),
+          "dl-mac-arm":  find(/aarch64.*\.dmg$|arm64.*\.dmg$/i),
+          "dl-mac-x64":  find(/x64.*\.dmg$|x86_64.*\.dmg$/i),
+        };
+        for (const [id, asset] of Object.entries(map)) {
+          if (asset && document.getElementById(id)) {
+            document.getElementById(id).href = asset.browser_download_url;
+          }
+        }
+      } catch {}
+    })();
+  </script>
+</body>
+</html>
