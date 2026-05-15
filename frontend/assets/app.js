@@ -1,5 +1,194 @@
 // Firefly Indexer — single-page app with top-nav pages.
 
+// ── i18n ───────────────────────────────────────────────────────────────
+const I18N = {
+  ko: {
+    "status.checking": "확인 중…",
+    "status.ready": "준비됨",
+    "status.ready_manual": "준비됨 (수동)",
+    "status.need_login": "Setup 필요 — 로그인",
+    "status.need_install": "Setup 필요 — 설치",
+    "banner.title_install": "Claude Code 셋업이 필요합니다.",
+    "banner.title_login": "Claude Code 로그인이 필요합니다.",
+    "banner.sub": "한 번만 설치·로그인하면 다음부터 자동으로 작동합니다.",
+    "banner.btn": "Setup으로 →",
+    "index.hero.sub": "사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.",
+    "field.input_folder": "입력 폴더",
+    "field.input_placeholder": "사진들이 들어있는 폴더 경로",
+    "field.output_xlsx": "출력 Excel",
+    "field.output_placeholder": "자동 제안됨",
+    "btn.pick": "찾기…",
+    "scan.hint_default": "— 폴더를 선택하면 자동 스캔합니다.",
+    "advanced": "고급 설정",
+    "field.scene_size": "씬당 사진 수",
+    "field.model": "모델",
+    "model.haiku": "Haiku 4.5 · 빠름 (추천)",
+    "model.sonnet": "Sonnet 4.6 · 정확",
+    "model.opus": "Opus 4.7 · 최강",
+    "field.timeout": "씬당 타임아웃 (s)",
+    "field.resume": "이어 실행 (옛 중단 batch 자동 재개)",
+    "field.output_lang": "Excel 출력 언어",
+    "lang.en_firefly": "영어 (Adobe Firefly 표준)",
+    "lang.ko": "한국어",
+    "btn.start": "인덱싱 시작",
+    "btn.stop": "중단",
+    "btn.recheck": "Recheck →",
+    "btn.open_xlsx": "결과 Excel 열기",
+    "btn.open_folder": "출력 폴더 열기",
+    "recheck.hero.title": "Recheck",
+    "recheck.hero.sub": "생성된 프롬프트가 정확한지 자동 재확인.",
+    "recheck.field.xlsx": "검증할 Excel",
+    "recheck.placeholder.xlsx": "인덱싱 결과 Excel",
+    "recheck.btn.quick": "빠른 재확인 (양식·표현)",
+    "recheck.card.title": "사진 vs 묘사 재확인 (진짜 round-trip)",
+    "recheck.card.body": "Excel의 caption을 원본 사진과 비교 = 일치도 0~100점 자체 평가.",
+    "recheck.field.source": "원본 사진 폴더 (Excel filename ↔ 사진 매핑)",
+    "recheck.placeholder.source": "ASCII 경로 · 인덱싱 입력 폴더와 같으면 OK",
+    "recheck.field.mode": "모드",
+    "recheck.mode.quick": "빠른 (10% 무작위 샘플)",
+    "recheck.mode.all": "전체 (모든 row)",
+    "recheck.field.estimate": "예상 시간",
+    "recheck.btn.start": "사진 vs 묘사 재확인 시작",
+    "badge.slow": "시간 ↑",
+    "report.form_errors": "양식 오류",
+    "report.slop_hits": "표현 반복 감지",
+    "rename.hero.title": "Rename",
+    "rename.hero.sub": "표준 패턴(<code>26Q2_CK_M3_3_00001.jpg</code>)이 아닌 파일을 일괄로 사본 폴더에 정정합니다. 원본은 절대 수정되지 않습니다.",
+    "rename.field.folder": "검사할 폴더",
+    "rename.only_non": "비표준 파일만 정정 (표준 파일은 그대로 두기)",
+    "rename.field.output": "사본 폴더 (출력)",
+    "rename.btn.run": "사본 폴더로 일괄 정정",
+    "rename.btn.open": "결과 폴더 열기",
+    "setup.hero.title": "Setup",
+    "setup.hero.sub": "본 도구는 본인 PC의 Claude Code CLI로 작동합니다.",
+    "setup.install.title": "Claude Code CLI 설치",
+    "setup.install.body": "터미널에서 아래 한 줄을 실행하세요 (Node.js 18+ 필요)",
+    "setup.login.title": "Pro / Max 로그인",
+    "setup.login.body": "새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.",
+    "setup.btn.run_terminal": "터미널 자동 실행",
+    "setup.btn.run_terminal_login": "터미널 자동 실행 (브라우저 OAuth 자동 열림)",
+    "setup.btn.recheck": "다시 체크",
+    "setup.btn.recheck_login": "로그인 상태 다시 체크",
+    "setup.done.title": "✓ 셋업 완료",
+    "setup.done.body": "모두 준비됐습니다. Index 페이지에서 인덱싱을 시작하세요.",
+    "setup.done.btn": "Index로 이동 →",
+    "setup.manual.title": "이미 설치·로그인 했는데 위 체크가 실패한다면",
+    "setup.manual.body": "PATH 미반영·자동 감지 실패일 수 있습니다. 본인이 이미 셋업을 마친 게 확실하면 아래 버튼으로 자동 체크를 무시하고 Index로 진행하세요. 다음 실행부터 영구 적용됩니다.",
+    "setup.manual.btn": "자동 체크 무시하고 진행",
+    "setup.manual.reset": "무시 해제",
+  },
+  en: {
+    "status.checking": "checking…",
+    "status.ready": "Ready",
+    "status.ready_manual": "Ready (manual)",
+    "status.need_login": "Setup needed — sign in",
+    "status.need_install": "Setup needed — install",
+    "banner.title_install": "Claude Code setup required.",
+    "banner.title_login": "Claude Code login required.",
+    "banner.sub": "Install and sign in once — then it just works.",
+    "banner.btn": "Go to Setup →",
+    "index.hero.sub": "Auto-generate per-photo descriptions and edit prompts (remove, move, etc.) → Adobe Firefly training-data Excel.",
+    "field.input_folder": "Input folder",
+    "field.input_placeholder": "Path to a folder containing photos",
+    "field.output_xlsx": "Output Excel",
+    "field.output_placeholder": "Auto-suggested",
+    "btn.pick": "Browse…",
+    "scan.hint_default": "— pick a folder and we'll scan it.",
+    "advanced": "Advanced",
+    "field.scene_size": "Photos per scene",
+    "field.model": "Model",
+    "model.haiku": "Haiku 4.5 · fast (recommended)",
+    "model.sonnet": "Sonnet 4.6 · accurate",
+    "model.opus": "Opus 4.7 · strongest",
+    "field.timeout": "Per-scene timeout (s)",
+    "field.resume": "Resume (continue an interrupted batch)",
+    "field.output_lang": "Excel output language",
+    "lang.en_firefly": "English (Adobe Firefly standard)",
+    "lang.ko": "Korean",
+    "btn.start": "Start indexing",
+    "btn.stop": "Stop",
+    "btn.recheck": "Recheck →",
+    "btn.open_xlsx": "Open Excel",
+    "btn.open_folder": "Open folder",
+    "recheck.hero.title": "Recheck",
+    "recheck.hero.sub": "Auto-recheck whether the generated prompts are accurate.",
+    "recheck.field.xlsx": "Excel to check",
+    "recheck.placeholder.xlsx": "Generated indexing Excel",
+    "recheck.btn.quick": "Quick recheck (form · phrasing)",
+    "recheck.card.title": "Photo vs description recheck (true round-trip)",
+    "recheck.card.body": "Compare each caption back against the original photo — 0~100 self-assessed match score.",
+    "recheck.field.source": "Original photo folder (maps Excel filename → photo)",
+    "recheck.placeholder.source": "ASCII path · same as the indexing input folder is fine",
+    "recheck.field.mode": "Mode",
+    "recheck.mode.quick": "Quick (random 10% sample)",
+    "recheck.mode.all": "All (every row)",
+    "recheck.field.estimate": "Estimated time",
+    "recheck.btn.start": "Start photo-vs-description recheck",
+    "badge.slow": "slow",
+    "report.form_errors": "Form errors",
+    "report.slop_hits": "Repetition / slop",
+    "rename.hero.title": "Rename",
+    "rename.hero.sub": "Bulk-fix non-conforming filenames (vs. <code>26Q2_CK_M3_3_00001.jpg</code>) into a sidecar copy folder. Originals are never modified.",
+    "rename.field.folder": "Folder to inspect",
+    "rename.only_non": "Only rename non-conforming files (keep conforming as-is)",
+    "rename.field.output": "Output copy folder",
+    "rename.btn.run": "Bulk rename to copy folder",
+    "rename.btn.open": "Open result folder",
+    "setup.hero.title": "Setup",
+    "setup.hero.sub": "This tool runs on the Claude Code CLI installed on your PC.",
+    "setup.install.title": "Install Claude Code CLI",
+    "setup.install.body": "Run this one-liner in a terminal (Node.js 18+ required).",
+    "setup.login.title": "Pro / Max sign in",
+    "setup.login.body": "Run this in a new terminal — the browser OAuth opens automatically.",
+    "setup.btn.run_terminal": "Run in terminal",
+    "setup.btn.run_terminal_login": "Run in terminal (browser OAuth opens automatically)",
+    "setup.btn.recheck": "Recheck",
+    "setup.btn.recheck_login": "Recheck login status",
+    "setup.done.title": "✓ Setup complete",
+    "setup.done.body": "All set. Go to the Index page and start indexing.",
+    "setup.done.btn": "Go to Index →",
+    "setup.manual.title": "Already installed and signed in but the check above fails?",
+    "setup.manual.body": "PATH might not be refreshed, or auto-detection might have missed it. If you're sure setup is complete, override the auto-check below. The choice persists for next launches.",
+    "setup.manual.btn": "Override auto-check",
+    "setup.manual.reset": "Reset override",
+  },
+};
+const LANG_KEY = "firefly_indexer_lang";
+let CURRENT_LANG = "ko";
+function applyLang(lang) {
+  const dict = I18N[lang] || I18N.en;
+  CURRENT_LANG = lang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    const val = dict[key];
+    if (val == null) return;
+    if (el.hasAttribute("data-i18n-html") || /<\w+/.test(val)) el.innerHTML = val;
+    else el.textContent = val;
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    const val = dict[key];
+    if (val != null) el.setAttribute("placeholder", val);
+  });
+  document.querySelectorAll(".lang-btn").forEach((b) =>
+    b.classList.toggle("lang-btn--active", b.dataset.lang === lang));
+  try { localStorage.setItem(LANG_KEY, lang); } catch {}
+}
+function t(key) {
+  const dict = I18N[CURRENT_LANG] || I18N.en;
+  return dict[key] ?? key;
+}
+function initLang() {
+  let lang = "ko";
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved) lang = saved;
+    else if (!(navigator.language || "").toLowerCase().startsWith("ko")) lang = "en";
+  } catch {}
+  applyLang(lang);
+}
+
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const dialog = window.__TAURI__.dialog || window.__TAURI_PLUGIN_DIALOG__;
@@ -50,12 +239,12 @@ function updateSetupBanner(s) {
     banner.setAttribute("hidden", "");
   } else if (s && s.installed) {
     banner.removeAttribute("hidden");
-    title.textContent = "Claude Code 로그인이 필요합니다.";
-    sub.textContent = "Setup 페이지에서 한 번만 로그인하면 다음부터 자동으로 작동합니다.";
+    title.textContent = t("banner.title_login");
+    sub.textContent = t("banner.sub");
   } else {
     banner.removeAttribute("hidden");
-    title.textContent = "Claude Code 셋업이 필요합니다.";
-    sub.textContent = "한 번만 설치·로그인하면 다음부터 자동으로 작동합니다.";
+    title.textContent = t("banner.title_install");
+    sub.textContent = t("banner.sub");
   }
 }
 
@@ -70,17 +259,17 @@ function updateSetupDoneCard(s) {
 }
 
 async function checkCliStatus() {
-  setStatusDot("busy", "checking…");
+  setStatusDot("busy", t("status.checking"));
   try {
     const s = await invoke("check_claude_status");
     setBadge($("#badge-install"), s.installed ? "ok" : "err", s.installed ? "INSTALLED" : "NOT FOUND");
     setBadge($("#badge-login"),   s.logged_in ? "ok" : "warn", s.logged_in ? "LOGGED IN" : "NOT LOGGED IN");
 
     const override = isManuallyOverridden();
-    if (override)                     setStatusDot("ok",   "준비됨 (수동)");
-    else if (s.installed && s.logged_in) setStatusDot("ok",   "준비됨");
-    else if (s.installed)            setStatusDot("warn", "Setup 필요 — 로그인");
-    else                              setStatusDot("err",  "Setup 필요 — 설치");
+    if (override)                     setStatusDot("ok",   t("status.ready_manual"));
+    else if (s.installed && s.logged_in) setStatusDot("ok",   t("status.ready"));
+    else if (s.installed)            setStatusDot("warn", t("status.need_login"));
+    else                              setStatusDot("err",  t("status.need_install"));
 
     updateSetupBanner(s);
     updateSetupDoneCard(s);
@@ -296,6 +485,7 @@ async function startIndexing() {
     model:        $("#model").value || "haiku",
     timeout_secs: parseInt($("#timeout").value, 10) || 600,
     resume:       $("#resume").checked,
+    output_lang:  ($("#output-lang") && $("#output-lang").value) || "en",
   };
   if (!req.input_folder || !req.output_xlsx) return;
 
@@ -486,6 +676,16 @@ async function runRename() {
 
 // ── Wire ───────────────────────────────────────────────────────────────
 async function init() {
+  // i18n first — paints UI in the user's preferred language before checks
+  initLang();
+  $$(".lang-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      applyLang(b.dataset.lang);
+      // Refresh dynamic strings that aren't bound via data-i18n
+      checkCliStatus();
+    });
+  });
+
   // Nav
   $$(".nav-btn").forEach((b) => {
     b.addEventListener("click", () => switchPage(b.dataset.page));

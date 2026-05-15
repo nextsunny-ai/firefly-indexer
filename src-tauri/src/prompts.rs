@@ -87,13 +87,20 @@ pub fn build_user_message(
     image_paths: &[String],
     scene_prefix: &str,
     existing_characters: &serde_json::Value,
+    output_lang: &str,
 ) -> String {
     let db_json = serde_json::to_string(existing_characters).unwrap_or_else(|_| "[]".to_string());
+    let lang_directive = match output_lang {
+        "ko" => "★ LANGUAGE OVERRIDE: Despite the spec saying ENGLISH, write `caption` and `edit_instruction` in NATURAL KOREAN (자연스러운 한국어 1문장, 15-30 단어 분량). All other rules (title pattern, character_id format, JSON shape) stay the same.",
+        _ => "Language: write `caption` and `edit_instruction` in ENGLISH as specified.",
+    };
     let mut lines: Vec<String> = Vec::new();
     lines.push(format!("scene_prefix = {scene_prefix}"));
     lines.push(format!("image_count = {}", image_paths.len()));
     lines.push(String::new());
     lines.push(SPEC_BODY.to_string());
+    lines.push(String::new());
+    lines.push(lang_directive.to_string());
     lines.push(String::new());
     lines.push(format!("Existing character DB (JSON array): {db_json}"));
     lines.push(String::new());
