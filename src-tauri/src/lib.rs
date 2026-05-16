@@ -69,24 +69,32 @@ fn cancel_vision_evaluation() {
 #[tauri::command]
 fn open_setup_terminal(command: String) -> Result<(), String> {
     // command ∈ {"install", "login"}
-    let shell_cmd = match command.as_str() {
-        "install" => "npm install -g @anthropic-ai/claude-code".to_string(),
-        "login"   => "claude /login".to_string(),
-        other     => other.to_string(),  // custom passthrough
-    };
+    // Native installer — NO Node.js required (Anthropic official scripts).
 
     #[cfg(target_os = "windows")]
     {
-        // Visible cmd window so the user sees install progress / OAuth URL.
-        // /K = keep open after command finishes.
+        // Windows native installer is a PowerShell one-liner.
+        let ps_cmd = match command.as_str() {
+            "install" => "irm https://claude.ai/install.ps1 | iex".to_string(),
+            "login"   => "claude".to_string(),
+            other     => other.to_string(),
+        };
         std::process::Command::new("cmd")
-            .args(["/C", "start", "cmd", "/K", &shell_cmd])
+            .args(["/C", "start", "powershell", "-NoExit", "-Command", &ps_cmd])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "macos")]
     {
-        let script = format!("tell application \"Terminal\" to do script \"{}\"", shell_cmd.replace('"', "\\\""));
+        let sh_cmd = match command.as_str() {
+            "install" => "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
+            "login"   => "$HOME/.local/bin/claude || claude".to_string(),
+            other     => other.to_string(),
+        };
+        let script = format!(
+            "tell application \"Terminal\" to do script \"{}\"",
+            sh_cmd.replace('\\', "\\\\").replace('"', "\\\"")
+        );
         std::process::Command::new("osascript")
             .args(["-e", &script])
             .spawn()
@@ -94,15 +102,19 @@ fn open_setup_terminal(command: String) -> Result<(), String> {
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        // Try gnome-terminal → konsole → xterm.
+        let sh_cmd = match command.as_str() {
+            "install" => "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
+            "login"   => "$HOME/.local/bin/claude || claude".to_string(),
+            other     => other.to_string(),
+        };
         for term in &["gnome-terminal", "konsole", "xterm"] {
             let mut c = std::process::Command::new(term);
             if *term == "gnome-terminal" {
-                c.args(["--", "bash", "-c", &format!("{}; exec bash", shell_cmd)]);
+                c.args(["--", "bash", "-c", &format!("{}; exec bash", sh_cmd)]);
             } else if *term == "konsole" {
-                c.args(["-e", "bash", "-c", &format!("{}; exec bash", shell_cmd)]);
+                c.args(["-e", "bash", "-c", &format!("{}; exec bash", sh_cmd)]);
             } else {
-                c.args(["-hold", "-e", &shell_cmd]);
+                c.args(["-hold", "-e", &sh_cmd]);
             }
             if c.spawn().is_ok() { return Ok(()); }
         }

@@ -77,6 +77,11 @@ pub fn find_bin() -> Option<PathBuf> {
     let home = dirs::home_dir();
     let mut candidates: Vec<PathBuf> = Vec::new();
 
+    // ★ Native installer location (Anthropic official, no Node.js) — check FIRST.
+    if let Some(h) = home.as_ref() {
+        candidates.push(h.join(".local").join("bin"));
+    }
+
     #[cfg(target_os = "windows")]
     {
         if let Some(appdata) = std::env::var_os("APPDATA") {
@@ -111,7 +116,6 @@ pub fn find_bin() -> Option<PathBuf> {
         candidates.push(PathBuf::from("/usr/bin"));
         if let Some(h) = home.as_ref() {
             candidates.push(h.join(".npm-global").join("bin"));
-            candidates.push(h.join(".local").join("bin"));
         }
     }
 

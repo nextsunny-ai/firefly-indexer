@@ -62,7 +62,7 @@ const I18N = {
     "setup.hero.title": "Setup",
     "setup.hero.sub": "본 도구는 본인 PC의 Claude Code CLI로 작동합니다.",
     "setup.install.title": "Claude Code CLI 설치",
-    "setup.install.body": "터미널에서 아래 한 줄을 실행하세요 (Node.js 18+ 필요)",
+    "setup.install.body": "아래 \"터미널 자동 실행\" 버튼을 누르세요. Node.js 설치 불필요 — 공식 native 설치 스크립트입니다.",
     "setup.login.title": "Pro / Max 로그인",
     "setup.login.body": "새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.",
     "setup.btn.run_terminal": "터미널 자동 실행",
@@ -137,7 +137,7 @@ const I18N = {
     "setup.hero.title": "Setup",
     "setup.hero.sub": "This tool runs on the Claude Code CLI installed on your PC.",
     "setup.install.title": "Install Claude Code CLI",
-    "setup.install.body": "Run this one-liner in a terminal (Node.js 18+ required).",
+    "setup.install.body": "Click the \"Run in terminal\" button below. No Node.js needed — this is the official native install script.",
     "setup.login.title": "Pro / Max sign in",
     "setup.login.body": "Run this in a new terminal — the browser OAuth opens automatically.",
     "setup.btn.run_terminal": "Run in terminal",
@@ -675,9 +675,22 @@ async function runRename() {
 }
 
 // ── Wire ───────────────────────────────────────────────────────────────
+function applyOsInstallCmd() {
+  // Show the right native-installer command for the user's OS.
+  const ua = (navigator.userAgent || "").toLowerCase();
+  const isWin = ua.includes("windows");
+  const el = document.getElementById("install-cmd");
+  if (el) {
+    el.textContent = isWin
+      ? "irm https://claude.ai/install.ps1 | iex"
+      : "curl -fsSL https://claude.ai/install.sh | bash";
+  }
+}
+
 async function init() {
   // i18n first — paints UI in the user's preferred language before checks
   initLang();
+  applyOsInstallCmd();
   $$(".lang-btn").forEach((b) => {
     b.addEventListener("click", () => {
       applyLang(b.dataset.lang);

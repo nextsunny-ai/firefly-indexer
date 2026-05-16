@@ -321,7 +321,7 @@
         <span class="badge" id="badge-install">CHECKING</span>
       </div>
       <p class="card__body" data-i18n="setup.install.body">터미널에서 아래 한 줄을 실행하세요 (Node.js 18+ 필요)</p>
-      <pre class="code">npm install -g @anthropic-ai/claude-code</pre>
+      <pre class="code" id="install-cmd">curl -fsSL https://claude.ai/install.sh | bash</pre>
       <div class="action-bar">
         <button type="button" class="btn btn--primary" id="run-install" data-i18n="setup.btn.run_terminal">터미널 자동 실행</button>
         <button type="button" class="btn btn--ghost" id="recheck-install" data-i18n="setup.btn.recheck">다시 체크</button>
@@ -335,7 +335,7 @@
         <span class="badge" id="badge-login">CHECKING</span>
       </div>
       <p class="card__body" data-i18n="setup.login.body">새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.</p>
-      <pre class="code">claude /login</pre>
+      <pre class="code" id="login-cmd">claude</pre>
       <div class="action-bar">
         <button type="button" class="btn btn--primary" id="run-login" data-i18n="setup.btn.run_terminal_login">터미널 자동 실행 (브라우저 OAuth 자동 열림)</button>
         <button type="button" class="btn btn--ghost" id="recheck-login" data-i18n="setup.btn.recheck_login">로그인 상태 다시 체크</button>
