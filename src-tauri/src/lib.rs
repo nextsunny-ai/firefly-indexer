@@ -65,61 +65,153 @@ fn cancel_vision_evaluation() {
     evaluator::cancel_vision_eval();
 }
 
-// ── Open a terminal and run a setup command ───────────────────────────
+// ── Setup: install Claude Code in the background (no terminal window) ──
+// Runs the official Anthropic native installer (NO Node.js) headless and
+// returns the combined log. The user never sees or has to close a terminal.
 #[tauri::command]
-fn open_setup_terminal(command: String) -> Result<(), String> {
-    // command ∈ {"install", "login"}
-    // Native installer — NO Node.js required (Anthropic official scripts).
+async fn run_install() -> Result<String, String> {
+    use std::time::Duration;
+    use tokio::process::Command;
+
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        // tokio::process::Command has its own inherent creation_flags() on Windows.
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let mut c = Command::new("powershell");
+        c.args([
+            "-NoProfile", "-NonInteractive", "-Command",
+            "irm https://claude.ai/install.ps1 | iex",
+        ]);
+        c.creation_flags(CREATE_NO_WINDOW);
+        c
+    };
+    #[cfg(not(target_os = "windows"))]
+    let mut cmd = {
+        let mut c = Command::new("sh");
+        c.args(["-c", "curl -fsSL https://claude.ai/install.sh | bash"]);
+        c
+    };
+
+    let out = tokio::time::timeout(Duration::from_secs(300), cmd.output())
+        .await
+        .map_err(|_| "설치 시간 초과 (5분). 인터넷 연결을 확인해주세요.".to_string())?
+        .map_err(|e| format!("설치 실행 실패: {e}"))?;
+
+    let log = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&out.stdout).trim(),
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    if out.status.success() {
+        Ok(log.trim().to_string())
+    } else {
+        Err(format!("설치 실패 (exit {:?}):\n{}", out.status.code(), log.trim()))
+    }
+}
+
+// ── Setup: open ONE terminal for `claude` login (browser OAuth) ────────
+// Login is genuinely interactive (browser OAuth), so a terminal is needed.
+// Returns a handle the frontend keeps: macOS = Terminal window id,
+// Windows = powershell PID. close_setup_terminal() uses it to auto-close
+// the window the moment login is confirmed — the user never touches it.
+#[tauri::command]
+fn open_setup_terminal(command: String) -> Result<i64, String> {
+    if command != "login" {
+        return Err(format!("unsupported setup command: {command}"));
+    }
 
     #[cfg(target_os = "windows")]
     {
-        // Windows native installer is a PowerShell one-liner.
-        let ps_cmd = match command.as_str() {
-            "install" => "irm https://claude.ai/install.ps1 | iex".to_string(),
-            "login"   => "claude".to_string(),
-            other     => other.to_string(),
-        };
-        std::process::Command::new("cmd")
-            .args(["/C", "start", "powershell", "-NoExit", "-Command", &ps_cmd])
+        use std::os::windows::process::CommandExt;
+        // Spawn powershell directly (not via `start`) so we own the PID.
+        // CREATE_NEW_CONSOLE gives it a visible console for the login prompt.
+        const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+        let child = std::process::Command::new("powershell")
+            .args(["-NoExit", "-NoProfile", "-Command", "claude"])
+            .creation_flags(CREATE_NEW_CONSOLE)
             .spawn()
             .map_err(|e| e.to_string())?;
+        Ok(child.id() as i64)
     }
     #[cfg(target_os = "macos")]
     {
-        let sh_cmd = match command.as_str() {
-            "install" => "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
-            "login"   => "$HOME/.local/bin/claude || claude".to_string(),
-            other     => other.to_string(),
-        };
+        let sh_cmd = "$HOME/.local/bin/claude || claude";
         let script = format!(
-            "tell application \"Terminal\" to do script \"{}\"",
+            "tell application \"Terminal\"\n\
+             activate\n\
+             do script \"{}\"\n\
+             return id of front window\n\
+             end tell",
             sh_cmd.replace('\\', "\\\\").replace('"', "\\\"")
         );
-        std::process::Command::new("osascript")
+        let out = std::process::Command::new("osascript")
             .args(["-e", &script])
-            .spawn()
+            .output()
             .map_err(|e| e.to_string())?;
+        let id = String::from_utf8_lossy(&out.stdout).trim().parse::<i64>().unwrap_or(0);
+        Ok(id)
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        let sh_cmd = match command.as_str() {
-            "install" => "curl -fsSL https://claude.ai/install.sh | bash".to_string(),
-            "login"   => "$HOME/.local/bin/claude || claude".to_string(),
-            other     => other.to_string(),
-        };
+        let sh_cmd = "$HOME/.local/bin/claude || claude";
         for term in &["gnome-terminal", "konsole", "xterm"] {
             let mut c = std::process::Command::new(term);
             if *term == "gnome-terminal" {
-                c.args(["--", "bash", "-c", &format!("{}; exec bash", sh_cmd)]);
+                c.args(["--", "bash", "-c", &format!("{sh_cmd}; exec bash")]);
             } else if *term == "konsole" {
-                c.args(["-e", "bash", "-c", &format!("{}; exec bash", sh_cmd)]);
+                c.args(["-e", "bash", "-c", &format!("{sh_cmd}; exec bash")]);
             } else {
-                c.args(["-hold", "-e", &sh_cmd]);
+                c.args(["-hold", "-e", sh_cmd]);
             }
-            if c.spawn().is_ok() { return Ok(()); }
+            if c.spawn().is_ok() { return Ok(0); }
         }
-        return Err("No supported terminal found (gnome-terminal/konsole/xterm)".to_string());
+        Err("No supported terminal found (gnome-terminal/konsole/xterm)".to_string())
     }
+}
+
+// ── Setup: auto-close the login terminal once login is confirmed ───────
+#[tauri::command]
+fn close_setup_terminal(handle: i64) -> Result<(), String> {
+    if handle == 0 {
+        return Ok(());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        // /T kills the whole tree (powershell + the claude child); the
+        // console window closes when its root process dies.
+        let _ = std::process::Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &handle.to_string()])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        // Kill whatever runs in that window (the claude REPL) via its tty,
+        // then close it — with only the shell left, Terminal closes
+        // without a "process still running" confirmation dialog.
+        let script = format!(
+            "tell application \"Terminal\"\n\
+             set ws to (every window whose id is {handle})\n\
+             if ws is not {{}} then\n\
+             set w to item 1 of ws\n\
+             set t to tty of selected tab of w\n\
+             try\n\
+             do shell script \"/usr/bin/pkill -t \" & (text 6 thru -1 of t)\n\
+             end try\n\
+             delay 0.3\n\
+             try\n\
+             close w\n\
+             end try\n\
+             end if\n\
+             end tell"
+        );
+        let _ = std::process::Command::new("osascript")
+            .args(["-e", &script])
+            .output();
+    }
+    let _ = handle;
     Ok(())
 }
 
@@ -179,7 +271,9 @@ pub fn run() {
             run_evaluation,
             run_vision_evaluation,
             cancel_vision_evaluation,
+            run_install,
             open_setup_terminal,
+            close_setup_terminal,
             open_path,
             suggest_output_path,
         ])

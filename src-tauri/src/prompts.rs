@@ -88,6 +88,7 @@ pub fn build_user_message(
     scene_prefix: &str,
     existing_characters: &serde_json::Value,
     output_lang: &str,
+    custom_guidelines: &str,
 ) -> String {
     let db_json = serde_json::to_string(existing_characters).unwrap_or_else(|_| "[]".to_string());
     let lang_directive = match output_lang {
@@ -101,6 +102,13 @@ pub fn build_user_message(
     lines.push(SPEC_BODY.to_string());
     lines.push(String::new());
     lines.push(lang_directive.to_string());
+    if !custom_guidelines.trim().is_empty() {
+        lines.push(String::new());
+        lines.push("★ CLIENT GUIDELINES (Adobe / project-specific instructions — \
+            follow these STRICTLY; where they conflict with the style defaults \
+            above, the client guidelines WIN):".to_string());
+        lines.push(custom_guidelines.trim().to_string());
+    }
     lines.push(String::new());
     lines.push(format!("Existing character DB (JSON array): {db_json}"));
     lines.push(String::new());

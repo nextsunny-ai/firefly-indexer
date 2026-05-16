@@ -29,6 +29,8 @@ pub struct IndexRequest {
     pub resume: bool,
     #[serde(default = "default_lang")]
     pub output_lang: String,   // "en" (default, Adobe Firefly standard) | "ko"
+    #[serde(default)]
+    pub custom_guidelines: String,  // optional Adobe/client prompt-writing rules
 }
 
 fn default_lang() -> String { "en".to_string() }
@@ -181,7 +183,10 @@ pub async fn run_indexing<R: tauri::Runtime>(
         emit_info(&app, &state, total, total_cost, &scene, substep_total);
 
         let existing_chars = serde_json::to_value(&state.known_characters).unwrap_or(serde_json::Value::Null);
-        let user_msg = prompts::build_user_message(&scene.image_paths, &scene.prefix, &existing_chars, &req.output_lang);
+        let user_msg = prompts::build_user_message(
+            &scene.image_paths, &scene.prefix, &existing_chars,
+            &req.output_lang, &req.custom_guidelines,
+        );
 
         // Sub-step channel — re-emit each event as a "substep" ProgressEvent.
         let (tx, mut rx) = mpsc::unbounded_channel::<SubStepEvent>();

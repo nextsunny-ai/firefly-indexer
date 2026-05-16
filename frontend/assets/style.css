@@ -254,6 +254,12 @@ code {
 }
 .field__hint { margin: 0; font-size: var(--t-cap); color: var(--fg-subtle); }
 
+.field__textarea {
+  width: 100%; margin-top: var(--sp-2);
+  resize: vertical; min-height: 96px; line-height: 1.55;
+  font-family: var(--font-sans);
+}
+
 .opt-grid, .rename-grid {
   display: grid; gap: var(--sp-4);
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

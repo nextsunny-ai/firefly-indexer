@@ -15,8 +15,10 @@ const I18N = {
     "index.hero.sub": "사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.",
     "toast.already_installed": "Claude Code가 이미 설치되어 있습니다 ✓",
     "toast.already_logged_in": "이미 로그인되어 있습니다 ✓",
-    "toast.install_started": "터미널 창을 열었습니다. 설치가 진행됩니다. 끝나면 자동으로 감지합니다…",
-    "toast.login_started": "터미널 + 브라우저를 열었습니다. 로그인하시면 자동으로 감지합니다…",
+    "toast.install_started": "Claude Code 설치 중… 잠시만 기다려주세요 (1~2분).",
+    "toast.install_fail": "설치 실패:",
+    "toast.login_started": "로그인 창을 열었습니다. 브라우저에서 로그인하시면 창이 자동으로 닫힙니다…",
+    "toast.login_window_closed": "로그인 완료 ✓ 로그인 창을 자동으로 닫았습니다.",
     "toast.install_first": "먼저 STEP 01에서 Claude Code를 설치해주세요.",
     "toast.install_done": "Claude Code 설치 완료 ✓ — 이제 STEP 02 로그인을 진행하세요.",
     "toast.setup_done": "셋업 완료! ✓ 위쪽 Index 메뉴에서 인덱싱을 시작하세요.",
@@ -28,6 +30,9 @@ const I18N = {
     "btn.pick": "찾기…",
     "scan.hint_default": "— 폴더를 선택하면 자동 스캔합니다.",
     "advanced": "고급 설정",
+    "guidelines.summary": "프롬프트 지침 (Adobe·클라이언트 — 선택)",
+    "guidelines.hint": "Adobe나 클라이언트가 caption·edit_instruction 작성 규칙을 줬다면 여기에 적으세요. 모든 사진 분석에 함께 적용됩니다. 자동 저장 — 한 번만 입력하면 됩니다.",
+    "guidelines.placeholder": "예) 캡션은 항상 현재시제 · 브랜드명·로고 언급 금지 · edit_instruction은 명령형 한 문장으로 …",
     "field.scene_size": "씬당 사진 수",
     "field.model": "모델",
     "model.haiku": "Haiku 4.5 · 빠름 (추천)",
@@ -98,8 +103,10 @@ const I18N = {
     "index.hero.sub": "Auto-generate per-photo descriptions and edit prompts (remove, move, etc.) → Adobe Firefly training-data Excel.",
     "toast.already_installed": "Claude Code is already installed ✓",
     "toast.already_logged_in": "Already signed in ✓",
-    "toast.install_started": "Terminal opened. Installing… we'll detect completion automatically.",
-    "toast.login_started": "Terminal + browser opened. Sign in — we'll detect it automatically.",
+    "toast.install_started": "Installing Claude Code… please wait (1–2 min).",
+    "toast.install_fail": "Install failed:",
+    "toast.login_started": "Login window opened. Sign in via the browser — the window closes automatically.",
+    "toast.login_window_closed": "Signed in ✓ Login window closed automatically.",
     "toast.install_first": "Please install Claude Code in STEP 01 first.",
     "toast.install_done": "Claude Code installed ✓ — now do STEP 02 (sign in).",
     "toast.setup_done": "Setup complete! ✓ Go to the Index menu to start indexing.",
@@ -111,6 +118,9 @@ const I18N = {
     "btn.pick": "Browse…",
     "scan.hint_default": "— pick a folder and we'll scan it.",
     "advanced": "Advanced",
+    "guidelines.summary": "Prompt guidelines (Adobe / client — optional)",
+    "guidelines.hint": "If Adobe or the client gave you rules for writing caption / edit_instruction, put them here. They apply to every photo. Saved automatically — enter once.",
+    "guidelines.placeholder": "e.g. captions always present tense · no brand/logo mentions · edit_instruction as one imperative sentence …",
     "field.scene_size": "Photos per scene",
     "field.model": "Model",
     "model.haiku": "Haiku 4.5 · fast (recommended)",
@@ -279,6 +289,7 @@ function updateSetupBanner(s) {
 // ── Setup auto-polling — detects install/login completion automatically ──
 let _setupPollTimer = null;
 let _lastSetupState = "";
+let _loginTermHandle = 0;   // macOS Terminal window id / Windows PID — for auto-close
 function startSetupPolling() {
   if (_setupPollTimer) return;
   let ticks = 0;
@@ -298,6 +309,12 @@ function startSetupPolling() {
         toast(t("toast.install_done"), "ok");
       }
       if (s.installed && s.logged_in) {
+        // Login confirmed — auto-close the login terminal so the user
+        // never has to deal with a stray terminal window.
+        if (_loginTermHandle) {
+          invoke("close_setup_terminal", { handle: _loginTermHandle }).catch(() => {});
+          _loginTermHandle = 0;
+        }
         toast(t("toast.setup_done"), "ok");
         const dot = $("#cli-status .status__dot");
         if (dot) { dot.dataset.state = "ok"; $("#cli-status .status__text").textContent = t("status.ready"); }
@@ -552,6 +569,7 @@ async function startIndexing() {
     timeout_secs: parseInt($("#timeout").value, 10) || 600,
     resume:       $("#resume").checked,
     output_lang:  ($("#output-lang") && $("#output-lang").value) || "en",
+    custom_guidelines: ($("#custom-guidelines") && $("#custom-guidelines").value.trim()) || "",
   };
   if (!req.input_folder || !req.output_xlsx) return;
 
@@ -856,11 +874,20 @@ async function init() {
       checkCliStatus();
       return;
     }
+    // Install runs headless in the backend — no terminal window at all.
+    const btn = $("#run-install");
+    const orig = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = t("toast.install_started"); }
+    toast(t("toast.install_started"), "info");
     try {
-      await invoke("open_setup_terminal", { command: "install" });
-      toast(t("toast.install_started"), "info");
-      startSetupPolling();
-    } catch (e) { toast(t("toast.terminal_fail") + " " + e, "err"); }
+      await invoke("run_install");
+      toast(t("toast.install_done"), "ok");
+      await checkCliStatus();
+    } catch (e) {
+      toast(t("toast.install_fail") + " " + e, "err");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
   });
   $("#run-login")?.addEventListener("click", async () => {
     const s = await invoke("check_claude_status").catch(() => null);
@@ -874,7 +901,9 @@ async function init() {
       return;
     }
     try {
-      await invoke("open_setup_terminal", { command: "login" });
+      // Login needs a real terminal (browser OAuth). We keep its handle so
+      // the window auto-closes the moment login is confirmed.
+      _loginTermHandle = (await invoke("open_setup_terminal", { command: "login" })) || 0;
       toast(t("toast.login_started"), "info");
       startSetupPolling();
     } catch (e) { toast(t("toast.terminal_fail") + " " + e, "err"); }
@@ -889,6 +918,20 @@ async function init() {
     setManualOverride(false);
     checkCliStatus();
   });
+
+  // Prompt guidelines — persisted, set-once. Restore + auto-save.
+  const gEl = $("#custom-guidelines");
+  if (gEl) {
+    const saved = localStorage.getItem("firefly.guidelines") || "";
+    gEl.value = saved;
+    if (saved.trim()) {
+      const block = $("#guidelines-block");
+      if (block) block.open = true;   // keep it visible as a reminder
+    }
+    gEl.addEventListener("input", () => {
+      localStorage.setItem("firefly.guidelines", gEl.value);
+    });
+  }
 
   await checkCliStatus();
   // default page = indexer

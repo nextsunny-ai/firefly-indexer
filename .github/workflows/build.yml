@@ -16,15 +16,15 @@ jobs:
         platform:
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_glob: 'src-tauri/target/aarch64-apple-darwin/release/bundle/{dmg,macos}/*'
+            artifact_glob: 'src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg'
             asset_label: macos-arm64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_glob: 'src-tauri/target/x86_64-apple-darwin/release/bundle/{dmg,macos}/*'
+            artifact_glob: 'src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg'
             asset_label: macos-x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_glob: 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/{nsis,msi}/*'
+            artifact_glob: 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/{nsis/*.exe,msi/*.msi}'
             asset_label: windows-x64
     runs-on: ${{ matrix.platform.os }}
     steps:
