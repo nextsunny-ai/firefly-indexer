@@ -47,8 +47,14 @@
     .info ol { padding-left: 22px; line-height: 1.7; }
     .info ol li { margin-bottom: 10px; }
     .info code { font-family: var(--mono); font-size: 12px; background: var(--elevated); padding: 2px 6px; border-radius: 4px; }
-    .info-code { font-family: var(--mono); font-size: 13px; background: #0A0A0E; color: #E5E7EB;
-      padding: 14px 18px; border-radius: 4px; margin: 8px 0 16px 22px; overflow-x: auto; user-select: all; }
+    .info-code-row { display: flex; align-items: stretch; gap: 8px; margin: 8px 0 16px 22px; }
+    .info-code { flex: 1; font-family: var(--mono); font-size: 13px; background: #0A0A0E; color: #E5E7EB;
+      padding: 14px 18px; border-radius: 4px; margin: 0; overflow-x: auto; user-select: all; }
+    .copy-btn { flex-shrink: 0; appearance: none; border: 0; cursor: pointer;
+      background: var(--fg); color: var(--bg); font-family: var(--sans); font-weight: 600; font-size: 13px;
+      padding: 0 18px; border-radius: 4px; transition: background 150ms; }
+    .copy-btn:hover { background: #000; }
+    .copy-btn.copied { background: #10B981; color: #fff; }
     .info-note { margin: 20px 0 0; padding: 14px 18px; background: var(--elevated); border-radius: 4px;
       font-size: 13px; color: var(--muted); }
 
@@ -107,7 +113,10 @@
       <li data-i18n="setup_s1" data-i18n-html="true">Double-click the downloaded <code>.dmg</code> → in the window, drag the <strong>Firefly Indexer</strong> app onto the <strong>Applications</strong> folder.</li>
       <li data-i18n="setup_s2" data-i18n-html="true"><strong>Security unlock (one time).</strong> The app isn't code-signed yet, so macOS blocks it. Open the <strong>Terminal</strong> app (Spotlight: <code>⌘ + Space</code> → type "Terminal"), paste the line below, press Enter:</li>
     </ol>
-    <pre class="info-code">xattr -cr "/Applications/Firefly Indexer.app"</pre>
+    <div class="info-code-row">
+      <pre class="info-code" id="unlock-cmd">xattr -cr "/Applications/Firefly Indexer.app"</pre>
+      <button type="button" class="copy-btn" id="copy-unlock" data-i18n="copy_btn">복사</button>
+    </div>
     <ol start="3">
       <li data-i18n="setup_s3" data-i18n-html="true">Open <strong>Applications</strong> (or Launchpad) → double-click <strong>Firefly Indexer</strong> to launch.</li>
       <li data-i18n="setup_s4" data-i18n-html="true">A yellow bar appears at the top → click <strong>Go to Setup →</strong>.</li>
@@ -147,6 +156,7 @@
         setup_s7:'Click <strong>Recheck</strong> → top-right shows <strong>● Ready</strong>.',
         setup_s8:'Click <strong>Index</strong> in the top menu → pick a photo folder → start indexing.',
         setup_note:"Requires a Claude Pro or Max subscription. The tool runs on your own subscription — no extra cost. New to Claude Code? Fine — the buttons handle everything. (Windows: just run the .exe installer, then steps 4–8.)",
+        copy_btn:"Copy",
       },
       ko: {
         hero_title: "Adobe Firefly Indexer",
@@ -166,6 +176,7 @@
         setup_s7:'<strong>다시 체크</strong> 클릭 → 우상단에 <strong>● 준비됨</strong> 표시.',
         setup_s8:'위쪽 메뉴 <strong>Index</strong> 클릭 → 사진 폴더 선택 → 인덱싱 시작.',
         setup_note:"Claude Pro 또는 Max 구독이 필요합니다. 본인 구독으로 작동 — 추가 비용 없음. Claude Code가 처음이어도 OK — 버튼이 다 해줍니다. (Windows는 .exe 설치 파일 실행 후 = 4~8단계.)",
+        copy_btn:"복사",
       },
     };
     const LANG_KEY = "firefly_indexer_lang";
@@ -191,6 +202,27 @@
       if (saved) applyLang(saved);
       else if ((navigator.language || "").startsWith("ko")) applyLang("ko");
     } catch {}
+
+    // Copy button for the unlock command
+    document.querySelectorAll(".copy-btn").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const code = document.getElementById("unlock-cmd");
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code.textContent.trim());
+          const orig = b.textContent;
+          b.textContent = (document.documentElement.lang === "ko") ? "복사됨 ✓" : "Copied ✓";
+          b.classList.add("copied");
+          setTimeout(() => { b.textContent = orig; b.classList.remove("copied"); }, 2000);
+        } catch (e) {
+          // Fallback: select the text
+          const r = document.createRange();
+          r.selectNodeContents(code);
+          const sel = window.getSelection();
+          sel.removeAllRanges(); sel.addRange(r);
+        }
+      });
+    });
 
     // Auto-fill latest release asset URLs from GitHub API.
     // For a private repo, the asset URLs require auth — so this page
