@@ -319,15 +319,28 @@
     <section class="card">
       <div class="card__head">
         <span class="card__step">01</span>
-        <h2 class="card__title" data-i18n="setup.install.title">Claude Code CLI 설치</h2>
+        <h2 class="card__title" data-i18n="setup.install.title">Claude Code 설치</h2>
         <span class="badge" id="badge-install">CHECKING</span>
       </div>
-      <p class="card__body" data-i18n="setup.install.body">터미널에서 아래 한 줄을 실행하세요 (Node.js 18+ 필요)</p>
-      <pre class="code" id="install-cmd">curl -fsSL https://claude.ai/install.sh | bash</pre>
+      <p class="card__body" data-i18n="setup.install.body">아래 버튼을 누르면 앱 안에서 자동으로 설치됩니다. 터미널 창은 뜨지 않고, Node.js 같은 것도 필요 없습니다.</p>
       <div class="action-bar">
-        <button type="button" class="btn btn--primary" id="run-install" data-i18n="setup.btn.run_terminal">터미널 자동 실행</button>
+        <button type="button" class="btn btn--primary" id="run-install" data-i18n="setup.btn.install">Claude Code 설치</button>
         <button type="button" class="btn btn--ghost" id="recheck-install" data-i18n="setup.btn.recheck">다시 체크</button>
       </div>
+      <details class="advanced">
+        <summary data-i18n="setup.fallback.summary">버튼이 안 되면 — 직접 설치 (복사해서 붙여넣기)</summary>
+        <p class="field__hint" data-i18n="setup.fallback.install_hint">터미널을 직접 여세요 (Mac: ⌘+Space → "터미널" / Windows: 시작 → "PowerShell"). 아래를 복사해 붙여넣고 Enter — 절대 직접 타이핑하지 마세요(오타 방지):</p>
+        <div class="code-row">
+          <code class="code-inline" id="install-cmd-mac">curl -fsSL https://claude.ai/install.sh | bash</code>
+          <span class="code-os">macOS</span>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="install-cmd-mac" data-i18n="btn.copy">복사</button>
+        </div>
+        <div class="code-row">
+          <code class="code-inline" id="install-cmd-win">irm https://claude.ai/install.ps1 | iex</code>
+          <span class="code-os">Windows</span>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="install-cmd-win" data-i18n="btn.copy">복사</button>
+        </div>
+      </details>
     </section>
 
     <section class="card">
@@ -336,12 +349,24 @@
         <h2 class="card__title" data-i18n="setup.login.title">Pro / Max 로그인</h2>
         <span class="badge" id="badge-login">CHECKING</span>
       </div>
-      <p class="card__body" data-i18n="setup.login.body">새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.</p>
-      <pre class="code" id="login-cmd">claude</pre>
+      <p class="card__body" data-i18n="setup.login.body">아래 버튼을 누르면 로그인 창이 열리고 브라우저가 뜹니다. 본인 Claude 계정으로 로그인하세요 (구글 로그인 OK). 로그인이 끝나면 그 창은 자동으로 닫힙니다.</p>
       <div class="action-bar">
-        <button type="button" class="btn btn--primary" id="run-login" data-i18n="setup.btn.run_terminal_login">터미널 자동 실행 (브라우저 OAuth 자동 열림)</button>
+        <button type="button" class="btn btn--primary" id="run-login" data-i18n="setup.btn.login">로그인</button>
         <button type="button" class="btn btn--ghost" id="recheck-login" data-i18n="setup.btn.recheck_login">로그인 상태 다시 체크</button>
       </div>
+      <details class="advanced">
+        <summary data-i18n="setup.fallback.summary">버튼이 안 되면 — 직접 로그인 (복사해서 붙여넣기)</summary>
+        <p class="field__hint" data-i18n="setup.fallback.login_hint">터미널을 열고 아래를 복사해 붙여넣고 Enter. 브라우저가 열리면 로그인하세요 (직접 타이핑 X — 오타 방지):</p>
+        <div class="code-row">
+          <code class="code-inline" id="login-cmd-1">claude auth login --claudeai</code>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="login-cmd-1" data-i18n="btn.copy">복사</button>
+        </div>
+        <p class="field__hint" data-i18n="setup.fallback.login_hint2">위에서 "command not found"가 뜨면 = 아래를 복사해서 다시 (Mac):</p>
+        <div class="code-row">
+          <code class="code-inline" id="login-cmd-2">~/.local/bin/claude auth login --claudeai</code>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="login-cmd-2" data-i18n="btn.copy">복사</button>
+        </div>
+      </details>
     </section>
 
     <section class="card" id="setup-done-card" hidden>

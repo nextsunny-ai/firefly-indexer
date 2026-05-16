@@ -73,12 +73,19 @@ const I18N = {
     "rename.btn.open": "결과 폴더 열기",
     "setup.hero.title": "Setup",
     "setup.hero.sub": "본 도구는 본인 PC의 Claude Code CLI로 작동합니다.",
-    "setup.install.title": "Claude Code CLI 설치",
-    "setup.install.body": "아래 \"터미널 자동 실행\" 버튼을 누르세요. Node.js 설치 불필요 — 공식 native 설치 스크립트입니다.",
+    "setup.install.title": "Claude Code 설치",
+    "setup.install.body": "아래 버튼을 누르면 앱 안에서 자동으로 설치됩니다. 터미널 창은 뜨지 않고, Node.js 같은 것도 필요 없습니다.",
     "setup.login.title": "Pro / Max 로그인",
-    "setup.login.body": "새 터미널 창에서 아래 명령 → 브라우저 OAuth가 자동으로 열립니다.",
-    "setup.btn.run_terminal": "터미널 자동 실행",
-    "setup.btn.run_terminal_login": "터미널 자동 실행 (브라우저 OAuth 자동 열림)",
+    "setup.login.body": "아래 버튼을 누르면 로그인 창이 열리고 브라우저가 뜹니다. 본인 Claude 계정으로 로그인하세요 (구글 로그인 OK). 로그인이 끝나면 그 창은 자동으로 닫힙니다.",
+    "setup.btn.install": "Claude Code 설치",
+    "setup.btn.login": "로그인",
+    "setup.fallback.summary": "버튼이 안 되면 — 직접 (복사해서 붙여넣기)",
+    "setup.fallback.install_hint": "터미널을 직접 여세요 (Mac: ⌘+Space → \"터미널\" / Windows: 시작 → \"PowerShell\"). 아래를 복사해 붙여넣고 Enter — 절대 직접 타이핑하지 마세요(오타 방지):",
+    "setup.fallback.login_hint": "터미널을 열고 아래를 복사해 붙여넣고 Enter. 브라우저가 열리면 로그인하세요 (직접 타이핑 X — 오타 방지):",
+    "setup.fallback.login_hint2": "위에서 \"command not found\"가 뜨면 = 아래를 복사해서 다시 (Mac):",
+    "btn.copy": "복사",
+    "toast.copied": "복사됨 — 터미널에 붙여넣으세요 (⌘V / Ctrl+V)",
+    "toast.override_warn": "경고: 로그인이 확인되지 않았습니다. 인덱싱 시 실패할 수 있습니다 — STEP 02 로그인을 먼저 끝내세요.",
     "setup.btn.recheck": "다시 체크",
     "setup.btn.recheck_login": "로그인 상태 다시 체크",
     "setup.done.title": "✓ 셋업 완료",
@@ -160,12 +167,19 @@ const I18N = {
     "rename.btn.open": "Open result folder",
     "setup.hero.title": "Setup",
     "setup.hero.sub": "This tool runs on the Claude Code CLI installed on your PC.",
-    "setup.install.title": "Install Claude Code CLI",
-    "setup.install.body": "Click the \"Run in terminal\" button below. No Node.js needed — this is the official native install script.",
+    "setup.install.title": "Install Claude Code",
+    "setup.install.body": "Click the button below — it installs automatically inside the app. No terminal window, no Node.js needed.",
     "setup.login.title": "Pro / Max sign in",
-    "setup.login.body": "Run this in a new terminal — the browser OAuth opens automatically.",
-    "setup.btn.run_terminal": "Run in terminal",
-    "setup.btn.run_terminal_login": "Run in terminal (browser OAuth opens automatically)",
+    "setup.login.body": "Click the button below — a login window opens and your browser launches. Sign in with your Claude account (Google sign-in is fine). The window closes itself once done.",
+    "setup.btn.install": "Install Claude Code",
+    "setup.btn.login": "Sign in",
+    "setup.fallback.summary": "Button not working? — do it manually (copy & paste)",
+    "setup.fallback.install_hint": "Open a terminal yourself (Mac: ⌘+Space → \"Terminal\" / Windows: Start → \"PowerShell\"). Copy the line below, paste it, press Enter — do not type it by hand (avoids typos):",
+    "setup.fallback.login_hint": "Open a terminal, copy the line below, paste it, press Enter. Sign in when the browser opens (don't type it by hand — avoids typos):",
+    "setup.fallback.login_hint2": "If that says \"command not found\", copy this one instead (Mac):",
+    "btn.copy": "Copy",
+    "toast.copied": "Copied — paste it into the terminal (⌘V / Ctrl+V)",
+    "toast.override_warn": "Warning: login is not verified. Indexing may fail — finish STEP 02 sign-in first.",
     "setup.btn.recheck": "Recheck",
     "setup.btn.recheck_login": "Recheck login status",
     "setup.done.title": "✓ Setup complete",
@@ -757,22 +771,34 @@ async function runRename() {
 }
 
 // ── Wire ───────────────────────────────────────────────────────────────
-function applyOsInstallCmd() {
-  // Show the right native-installer command for the user's OS.
-  const ua = (navigator.userAgent || "").toLowerCase();
-  const isWin = ua.includes("windows");
-  const el = document.getElementById("install-cmd");
-  if (el) {
-    el.textContent = isWin
-      ? "irm https://claude.ai/install.ps1 | iex"
-      : "curl -fsSL https://claude.ai/install.sh | bash";
-  }
+function wireCopyButtons() {
+  // Copy-to-clipboard for the manual-fallback command boxes — users paste
+  // instead of typing, so a missing letter can never break the command.
+  $$(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const target = document.getElementById(btn.dataset.copy);
+      if (!target) return;
+      const text = target.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // fallback for environments without async clipboard
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      toast(t("toast.copied"), "ok");
+    });
+  });
 }
 
 async function init() {
   // i18n first — paints UI in the user's preferred language before checks
   initLang();
-  applyOsInstallCmd();
+  wireCopyButtons();
   $$(".lang-btn").forEach((b) => {
     b.addEventListener("click", () => {
       applyLang(b.dataset.lang);
@@ -908,7 +934,13 @@ async function init() {
   });
   $("#setup-go-index")?.addEventListener("click", () => switchPage("indexer"));
   $("#goto-setup-btn")?.addEventListener("click", () => switchPage("setup"));
-  $("#manual-override")?.addEventListener("click", () => {
+  $("#manual-override")?.addEventListener("click", async () => {
+    // If the CLI genuinely isn't logged in, overriding only hides the
+    // problem — warn loudly instead of silently faking a green light.
+    const s = await invoke("check_claude_status").catch(() => null);
+    if (s && !s.logged_in) {
+      toast(t("toast.override_warn"), "warn");
+    }
     setManualOverride(true);
     checkCliStatus().then(() => switchPage("indexer"));
   });

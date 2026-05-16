@@ -153,11 +153,12 @@ fn preseed_claude_config() {
     }
 }
 
-// ── Setup: open ONE terminal for `claude` login (browser OAuth) ────────
-// Login is genuinely interactive (browser OAuth), so a terminal is needed.
+// ── Setup: open ONE terminal that runs `claude auth login` ─────────────
+// Runs the dedicated login subcommand `claude auth login --claudeai` —
+// goes STRAIGHT to the browser OAuth (no REPL, no `/login` typing, and
+// `--claudeai` pins it to the Claude subscription, never API billing).
 // Returns a handle the frontend keeps: macOS = Terminal window id,
-// Windows = powershell PID. close_setup_terminal() uses it to auto-close
-// the window the moment login is confirmed — the user never touches it.
+// Windows = powershell PID. close_setup_terminal() auto-closes it.
 #[tauri::command]
 fn open_setup_terminal(command: String) -> Result<i64, String> {
     if command != "login" {
@@ -166,14 +167,17 @@ fn open_setup_terminal(command: String) -> Result<i64, String> {
     // Silence the claude first-run prompts before the terminal opens.
     preseed_claude_config();
 
+    let bin = claude_cli::find_bin()
+        .ok_or_else(|| "claude CLI not found — run STEP 01 (install) first.".to_string())?;
+    let bin = bin.to_string_lossy().to_string();
+
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        // Spawn powershell directly (not via `start`) so we own the PID.
-        // CREATE_NEW_CONSOLE gives it a visible console for the login prompt.
         const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+        let ps = format!("& '{}' auth login --claudeai", bin.replace('\'', "''"));
         let child = std::process::Command::new("powershell")
-            .args(["-NoExit", "-NoProfile", "-Command", "Set-Location $HOME; claude"])
+            .args(["-NoExit", "-NoProfile", "-Command", &ps])
             .creation_flags(CREATE_NEW_CONSOLE)
             .spawn()
             .map_err(|e| e.to_string())?;
@@ -181,7 +185,7 @@ fn open_setup_terminal(command: String) -> Result<i64, String> {
     }
     #[cfg(target_os = "macos")]
     {
-        let sh_cmd = "$HOME/.local/bin/claude || claude";
+        let sh_cmd = format!("\"{}\" auth login --claudeai", bin.replace('"', "\\\""));
         let script = format!(
             "tell application \"Terminal\"\n\
              activate\n\
@@ -199,7 +203,7 @@ fn open_setup_terminal(command: String) -> Result<i64, String> {
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        let sh_cmd = "$HOME/.local/bin/claude || claude";
+        let sh_cmd = format!("\"{}\" auth login --claudeai", bin);
         for term in &["gnome-terminal", "konsole", "xterm"] {
             let mut c = std::process::Command::new(term);
             if *term == "gnome-terminal" {
@@ -207,7 +211,7 @@ fn open_setup_terminal(command: String) -> Result<i64, String> {
             } else if *term == "konsole" {
                 c.args(["-e", "bash", "-c", &format!("{sh_cmd}; exec bash")]);
             } else {
-                c.args(["-hold", "-e", sh_cmd]);
+                c.args(["-hold", "-e", &sh_cmd]);
             }
             if c.spawn().is_ok() { return Ok(0); }
         }

@@ -207,6 +207,24 @@ code {
   background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--r-1);
 }
 
+/* ── Copy-paste fallback rows (Setup manual install/login) ──────────── */
+.code-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-2) 0;
+}
+.code-inline {
+  flex: 1; min-width: 0;
+  background: var(--bg-inverse); color: #E5E7EB;
+  font-family: var(--font-mono); font-size: 13px;
+  padding: 10px 12px; border-radius: var(--r-1);
+  white-space: nowrap; overflow-x: auto; user-select: all;
+}
+.code-os {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--fg-subtle); flex-shrink: 0;
+}
+.copy-btn { flex-shrink: 0; }
+
 /* ── Buttons ────────────────────────────────────────────────────────── */
 .btn {
   appearance: none; border: 0; cursor: pointer;
