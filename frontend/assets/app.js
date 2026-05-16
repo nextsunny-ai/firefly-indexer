@@ -418,7 +418,11 @@ function appendLog(logEl, text, cls = "") {
 // ── Validate page ──────────────────────────────────────────────────────
 function setVal(elId, txt) { const e = $(elId); if (e) e.textContent = txt; }
 function refreshValidateButton() {
-  $("#run-validate").disabled = !$("#val-xlsx").value.trim();
+  const hasXlsx = !!$("#val-xlsx").value.trim();
+  const hasFolder = !!($("#ve-folder") && $("#ve-folder").value.trim());
+  $("#run-validate").disabled = !hasXlsx;          // quick recheck = Excel only
+  const vbtn = $("#run-vision-eval");
+  if (vbtn) vbtn.disabled = !(hasXlsx && hasFolder); // vision = Excel + photo folder
 }
 function renderReport(rep) {
   $("#eval-report").removeAttribute("hidden");
@@ -532,7 +536,7 @@ async function runValidate() {
     renderReport(rep);
     // store row count for vision estimate
     $("#val-xlsx").dataset.rows = String(rep.total_rows);
-    $("#run-vision-eval").disabled = !$("#ve-folder").value.trim();
+    refreshValidateButton();
     updateVisionEstimate();
   } catch (e) {
     alert("검증 실패: " + e);
@@ -812,11 +816,12 @@ async function init() {
   $("#run-validate").addEventListener("click", runValidate);
 
   // L3 vision round-trip wiring
+  $("#ve-folder").addEventListener("input", refreshValidateButton);
   $("#ve-pick-folder").addEventListener("click", async () => {
     const f = await pickFolder($("#ve-folder").value || undefined);
     if (f) {
       $("#ve-folder").value = f;
-      $("#run-vision-eval").disabled = !($("#val-xlsx").value.trim());
+      refreshValidateButton();
     }
   });
   $("#ve-mode").addEventListener("change", updateVisionEstimate);

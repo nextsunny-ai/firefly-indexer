@@ -158,6 +158,16 @@
         </div>
       </div>
 
+      <div class="row">
+        <div class="field field--grow">
+          <label class="field__label" data-i18n="recheck.field.source">원본 사진 폴더 (Excel filename ↔ 사진 매핑)</label>
+          <div class="field__row">
+            <input class="field__input" id="ve-folder" type="text" data-i18n-placeholder="recheck.placeholder.source" placeholder="ASCII 경로 — 인덱싱 입력 폴더와 같으면 OK" />
+            <button type="button" class="btn btn--secondary" id="ve-pick-folder" data-i18n="btn.pick">찾기…</button>
+          </div>
+        </div>
+      </div>
+
       <div class="action-bar">
         <button type="button" class="btn btn--primary btn--lg" id="run-validate" data-i18n="recheck.btn.quick" disabled>빠른 재확인 (양식·표현)</button>
       </div>
@@ -172,16 +182,6 @@
       <p class="card__body" data-i18n="recheck.card.body">
         Excel의 caption을 원본 사진과 비교 = 일치도 0~100점 자체 평가.
       </p>
-
-      <div class="row">
-        <div class="field field--grow">
-          <label class="field__label" data-i18n="recheck.field.source">원본 사진 폴더 (= Excel의 filename ↔ 사진 매핑)</label>
-          <div class="field__row">
-            <input class="field__input" id="ve-folder" type="text" data-i18n-placeholder="recheck.placeholder.source" placeholder="ASCII 경로 — 인덱싱 입력 폴더와 같으면 OK" />
-            <button type="button" class="btn btn--secondary" id="ve-pick-folder" data-i18n="btn.pick">찾기…</button>
-          </div>
-        </div>
-      </div>
 
       <div class="opt-grid">
         <div class="field">
