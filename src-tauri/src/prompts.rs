@@ -36,16 +36,15 @@ const SPEC_BODY: &str = r#"REQUIRED OUTPUT JSON SHAPE:
     - n is 0-BASED, starting at 0 (single wok = "wok_pan_0_isolated")
 - NEVER drop the "_n_" segment. "wok_pan_isolated" is WRONG.
 
-# edit_type rules
-- shotid 1 => "composition"
-    edit_instruction = describe placement of every subject relative to the background,
-    one imperative sentence (start with: "Place ...", "Position ...", "Set ...").
-- isolated shot SAME background as full_scene => "object_removal"
-    edit_instruction = "Remove X and Y; keep Z."
-- isolated human shot in DIFFERENT background => "character_reference"
-    edit_instruction = "Isolate the {subject} on a separate reference background ({describe})."
-- isolated object shot in DIFFERENT background => "object_reference"
-    edit_instruction = similar to character_reference
+# edit_type / edit_instruction rules  (★ MATCH the sample EXACTLY)
+- shotid 1 ONLY (the full_scene row) => edit_type = "composition"
+    edit_instruction = ONE imperative sentence describing placement of every
+    subject relative to the background (start with "Place ...", "Position ...", "Set ...").
+- EVERY other row (background_isolated and all *_isolated human/object shots)
+    => edit_type = null  AND  edit_instruction = null.
+    The sample leaves these two fields BLANK for every isolated shot. Do NOT
+    invent "object_removal" / "character_reference" / "object_reference" — those
+    values never appear in the dataset. Isolated shots carry a caption only.
 
 # characterId rules
 - compare each person to the existing character DB (face, age range, gender, ethnicity)
@@ -69,7 +68,8 @@ const SPEC_BODY: &str = r#"REQUIRED OUTPUT JSON SHAPE:
 - Hair color alone is NOT a basis for non-Asian classification (dyed hair is common).
 
 # caption style (MATCH the sample tone)
-- ENGLISH, exactly ONE sentence, 15-30 words, factual, present tense.
+- ENGLISH, exactly ONE sentence, CONCISE — aim 12-22 words (the sample averages ~18).
+  Do not over-describe; state the essentials plainly, factual, present tense.
 - Describe who/what + key clothing/color/material + immediate surroundings.
 - No camera-talk ("a shot of"). No interpretation ("she looks tired").
 - Start patterns:
