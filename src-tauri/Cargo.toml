@@ -1,6 +1,6 @@
 [package]
 name = "firefly_indexer"
-version = "0.1.8"
+version = "0.1.9"
 description = "Adobe Firefly training-data indexer (BYOK via Claude CLI)"
 authors = ["Sunny Soft"]
 edition = "2021"

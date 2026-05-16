@@ -1,7 +1,7 @@
 {
   "name": "firefly-indexer",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Adobe Firefly training-data indexer — vision AI → Excel. BYOK via Claude Pro/Max CLI.",
   "type": "module",
   "scripts": {
