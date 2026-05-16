@@ -13,6 +13,14 @@ const I18N = {
     "banner.sub": "한 번만 설치·로그인하면 다음부터 자동으로 작동합니다.",
     "banner.btn": "Setup으로 →",
     "index.hero.sub": "사진별 설명과 편집 프롬프트(지우기·옮기기 등)를 자동 생성 → Adobe Firefly 학습 데이터 Excel.",
+    "toast.already_installed": "Claude Code가 이미 설치되어 있습니다 ✓",
+    "toast.already_logged_in": "이미 로그인되어 있습니다 ✓",
+    "toast.install_started": "터미널 창을 열었습니다. 설치가 진행됩니다. 끝나면 자동으로 감지합니다…",
+    "toast.login_started": "터미널 + 브라우저를 열었습니다. 로그인하시면 자동으로 감지합니다…",
+    "toast.install_first": "먼저 STEP 01에서 Claude Code를 설치해주세요.",
+    "toast.install_done": "Claude Code 설치 완료 ✓ — 이제 STEP 02 로그인을 진행하세요.",
+    "toast.setup_done": "셋업 완료! ✓ 위쪽 Index 메뉴에서 인덱싱을 시작하세요.",
+    "toast.terminal_fail": "터미널 실행 실패:",
     "field.input_folder": "입력 폴더",
     "field.input_placeholder": "사진들이 들어있는 폴더 경로",
     "field.output_xlsx": "출력 Excel",
@@ -88,6 +96,14 @@ const I18N = {
     "banner.sub": "Install and sign in once — then it just works.",
     "banner.btn": "Go to Setup →",
     "index.hero.sub": "Auto-generate per-photo descriptions and edit prompts (remove, move, etc.) → Adobe Firefly training-data Excel.",
+    "toast.already_installed": "Claude Code is already installed ✓",
+    "toast.already_logged_in": "Already signed in ✓",
+    "toast.install_started": "Terminal opened. Installing… we'll detect completion automatically.",
+    "toast.login_started": "Terminal + browser opened. Sign in — we'll detect it automatically.",
+    "toast.install_first": "Please install Claude Code in STEP 01 first.",
+    "toast.install_done": "Claude Code installed ✓ — now do STEP 02 (sign in).",
+    "toast.setup_done": "Setup complete! ✓ Go to the Index menu to start indexing.",
+    "toast.terminal_fail": "Failed to open terminal:",
     "field.input_folder": "Input folder",
     "field.input_placeholder": "Path to a folder containing photos",
     "field.output_xlsx": "Output Excel",
@@ -189,6 +205,18 @@ function initLang() {
   applyLang(lang);
 }
 
+// ── Toast ──────────────────────────────────────────────────────────────
+let _toastTimer = null;
+function toast(msg, kind) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.dataset.kind = kind || "info";
+  el.removeAttribute("hidden");
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.setAttribute("hidden", ""), 5200);
+}
+
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const dialog = window.__TAURI__.dialog || window.__TAURI_PLUGIN_DIALOG__;
@@ -246,6 +274,40 @@ function updateSetupBanner(s) {
     title.textContent = t("banner.title_install");
     sub.textContent = t("banner.sub");
   }
+}
+
+// ── Setup auto-polling — detects install/login completion automatically ──
+let _setupPollTimer = null;
+let _lastSetupState = "";
+function startSetupPolling() {
+  if (_setupPollTimer) return;
+  let ticks = 0;
+  _setupPollTimer = setInterval(async () => {
+    ticks++;
+    const s = await invoke("check_claude_status").catch(() => null);
+    if (!s) return;
+    const stateKey = `${s.installed}/${s.logged_in}`;
+    if (stateKey !== _lastSetupState) {
+      _lastSetupState = stateKey;
+      setBadge($("#badge-install"), s.installed ? "ok" : "err", s.installed ? "INSTALLED" : "NOT FOUND");
+      setBadge($("#badge-login"),   s.logged_in ? "ok" : "warn", s.logged_in ? "LOGGED IN" : "NOT LOGGED IN");
+      updateSetupBanner(s);
+      updateSetupDoneCard(s);
+      updateStartButton();
+      if (s.installed && !s.logged_in) {
+        toast(t("toast.install_done"), "ok");
+      }
+      if (s.installed && s.logged_in) {
+        toast(t("toast.setup_done"), "ok");
+        const dot = $("#cli-status .status__dot");
+        if (dot) { dot.dataset.state = "ok"; $("#cli-status .status__text").textContent = t("status.ready"); }
+        clearInterval(_setupPollTimer);
+        _setupPollTimer = null;
+      }
+    }
+    // Stop polling after ~5 minutes to avoid endless background work
+    if (ticks > 100) { clearInterval(_setupPollTimer); _setupPollTimer = null; }
+  }, 3000);
 }
 
 function updateSetupDoneCard(s) {
@@ -783,12 +845,34 @@ async function init() {
   $("#recheck-install").addEventListener("click", checkCliStatus);
   $("#recheck-login").addEventListener("click", checkCliStatus);
   $("#run-install")?.addEventListener("click", async () => {
-    try { await invoke("open_setup_terminal", { command: "install" }); }
-    catch (e) { alert("터미널 실행 실패: " + e); }
+    const s = await invoke("check_claude_status").catch(() => null);
+    if (s && s.installed) {
+      toast(t("toast.already_installed"), "ok");
+      checkCliStatus();
+      return;
+    }
+    try {
+      await invoke("open_setup_terminal", { command: "install" });
+      toast(t("toast.install_started"), "info");
+      startSetupPolling();
+    } catch (e) { toast(t("toast.terminal_fail") + " " + e, "err"); }
   });
   $("#run-login")?.addEventListener("click", async () => {
-    try { await invoke("open_setup_terminal", { command: "login" }); }
-    catch (e) { alert("터미널 실행 실패: " + e); }
+    const s = await invoke("check_claude_status").catch(() => null);
+    if (s && s.logged_in) {
+      toast(t("toast.already_logged_in"), "ok");
+      checkCliStatus();
+      return;
+    }
+    if (s && !s.installed) {
+      toast(t("toast.install_first"), "warn");
+      return;
+    }
+    try {
+      await invoke("open_setup_terminal", { command: "login" });
+      toast(t("toast.login_started"), "info");
+      startSetupPolling();
+    } catch (e) { toast(t("toast.terminal_fail") + " " + e, "err"); }
   });
   $("#setup-go-index")?.addEventListener("click", () => switchPage("indexer"));
   $("#goto-setup-btn")?.addEventListener("click", () => switchPage("setup"));

@@ -382,6 +382,29 @@ code {
   color: var(--fg-muted);
 }
 
+/* ── Toast ──────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  top: 70px; right: 24px;
+  z-index: 100;
+  max-width: 380px;
+  padding: 14px 18px;
+  border-radius: var(--r-2);
+  background: var(--fg-primary);
+  color: var(--bg-primary);
+  font-size: 14px; font-weight: 500;
+  line-height: 1.5;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+  animation: toast-in var(--d-norm) var(--ease);
+}
+.toast[data-kind="ok"]   { background: var(--success); color: #FFFFFF; }
+.toast[data-kind="warn"] { background: var(--warning); color: #1A1A22; }
+.toast[data-kind="err"]  { background: var(--danger);  color: #FFFFFF; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Banner (warning / info) ────────────────────────────────────────── */
 .banner {
   display: flex; align-items: center; gap: var(--sp-4);
