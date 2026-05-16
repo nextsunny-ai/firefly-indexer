@@ -42,9 +42,15 @@
 
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
 
-    .info { max-width: 1100px; margin: 0 auto; padding: 32px 24px 96px; color: var(--muted); }
-    .info ol { padding-left: 20px; line-height: 1.8; }
+    .info { max-width: 1100px; margin: 0 auto; padding: 32px 24px 96px; color: var(--fg2); }
+    .info h3 { font-size: 20px; font-weight: 700; color: var(--fg); margin: 0 0 16px; }
+    .info ol { padding-left: 22px; line-height: 1.7; }
+    .info ol li { margin-bottom: 10px; }
     .info code { font-family: var(--mono); font-size: 12px; background: var(--elevated); padding: 2px 6px; border-radius: 4px; }
+    .info-code { font-family: var(--mono); font-size: 13px; background: #0A0A0E; color: #E5E7EB;
+      padding: 14px 18px; border-radius: 4px; margin: 8px 0 16px 22px; overflow-x: auto; user-select: all; }
+    .info-note { margin: 20px 0 0; padding: 14px 18px; background: var(--elevated); border-radius: 4px;
+      font-size: 13px; color: var(--muted); }
 
     footer { border-top: 1px solid var(--divider); padding: 32px 0; margin-top: 96px; }
     .footbar { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
@@ -98,10 +104,15 @@
   <section class="info">
     <h3 data-i18n="setup_title">First-time setup</h3>
     <ol>
-      <li data-i18n="setup_step1">Download and double-click to install.</li>
-      <li data-i18n="setup_step2" data-i18n-html="true">Open the <strong>Setup</strong> page inside the app → run <code>npm install -g @anthropic-ai/claude-code</code> with one click → sign in with your Claude Pro/Max account.</li>
-      <li data-i18n="setup_step3" data-i18n-html="true">Done. Pick a folder on the <strong>Index</strong> page and start indexing.</li>
+      <li data-i18n="setup_step1" data-i18n-html="true">Download the <code>.dmg</code> (macOS) or <code>.exe</code> (Windows), then install — drag the app into Applications (macOS) or run the installer (Windows).</li>
+      <li data-i18n="setup_step2" data-i18n-html="true"><strong>macOS only — security unlock (one time):</strong> the app isn't code-signed yet, so macOS blocks it. Open the <strong>Terminal</strong> app and paste this one line, then press Enter:</li>
     </ol>
+    <pre class="info-code">xattr -cr "/Applications/Firefly Indexer.app"</pre>
+    <ol start="3">
+      <li data-i18n="setup_step3" data-i18n-html="true">Launch the app → click <strong>Go to Setup</strong> → press the two <strong>Run in terminal</strong> buttons (auto-installs Claude Code + signs you in). <strong>No Node.js needed.</strong></li>
+      <li data-i18n="setup_step4" data-i18n-html="true">Done. On the <strong>Index</strong> page, pick a photo folder and start indexing.</li>
+    </ol>
+    <p class="info-note" data-i18n="setup_note">Requires a Claude Pro or Max subscription. The tool runs on your own subscription — no extra cost. New to Claude Code? Fine — the two buttons handle everything.</p>
   </section>
 
   <footer>
@@ -123,9 +134,11 @@
         mac_btn_arm:"Download · Apple Silicon",
         mac_btn_intel:"Intel",
         setup_title:"First-time setup",
-        setup_step1:"Download and double-click to install.",
-        setup_step2:'Open the <strong>Setup</strong> page inside the app → run <code>npm install -g @anthropic-ai/claude-code</code> with one click → sign in with your Claude Pro/Max account.',
-        setup_step3:'Done. Pick a folder on the <strong>Index</strong> page and start indexing.',
+        setup_step1:'Download the <code>.dmg</code> (macOS) or <code>.exe</code> (Windows), then install — drag the app into Applications (macOS) or run the installer (Windows).',
+        setup_step2:'<strong>macOS only — security unlock (one time):</strong> the app isn\'t code-signed yet, so macOS blocks it. Open the <strong>Terminal</strong> app and paste this one line, then press Enter:',
+        setup_step3:'Launch the app → click <strong>Go to Setup</strong> → press the two <strong>Run in terminal</strong> buttons (auto-installs Claude Code + signs you in). <strong>No Node.js needed.</strong>',
+        setup_step4:'Done. On the <strong>Index</strong> page, pick a photo folder and start indexing.',
+        setup_note:"Requires a Claude Pro or Max subscription. The tool runs on your own subscription — no extra cost. New to Claude Code? Fine — the two buttons handle everything.",
       },
       ko: {
         hero_title: "Adobe Firefly Indexer",
@@ -136,9 +149,11 @@
         mac_btn_arm:"다운로드 · Apple Silicon",
         mac_btn_intel:"Intel",
         setup_title:"처음 설치 시",
-        setup_step1:"다운로드 후 더블클릭으로 설치.",
-        setup_step2:'앱 안의 <strong>Setup</strong> 페이지 → <code>npm install -g @anthropic-ai/claude-code</code> 자동 실행 → 본인 Claude Pro/Max 계정으로 로그인.',
-        setup_step3:'완료. <strong>Index</strong> 페이지에서 폴더 선택 → 인덱싱 시작.',
+        setup_step1:'<code>.dmg</code>(macOS) 또는 <code>.exe</code>(Windows) 다운로드 후 설치 — macOS는 앱을 응용 프로그램 폴더로 드래그, Windows는 설치 파일 실행.',
+        setup_step2:'<strong>macOS 전용 — 보안 해제 (1회만):</strong> 앱이 아직 서명 전이라 macOS가 막습니다. <strong>터미널</strong> 앱을 열고 아래 한 줄을 붙여넣은 뒤 엔터:',
+        setup_step3:'앱 실행 → <strong>Setup으로</strong> 클릭 → <strong>터미널 자동 실행</strong> 버튼 2개 누르기 (Claude Code 자동 설치 + 자동 로그인). <strong>Node.js 불필요.</strong>',
+        setup_step4:'완료. <strong>Index</strong> 페이지에서 사진 폴더 선택 → 인덱싱 시작.',
+        setup_note:"Claude Pro 또는 Max 구독이 필요합니다. 본인 구독으로 작동 — 추가 비용 없음. Claude Code가 처음이어도 OK — 버튼 2개가 다 해줍니다.",
       },
     };
     const LANG_KEY = "firefly_indexer_lang";
