@@ -30,7 +30,7 @@ const I18N = {
     "btn.pick": "찾기…",
     "scan.hint_default": "— 폴더를 선택하면 자동 스캔합니다.",
     "advanced": "고급 설정",
-    "guidelines.summary": "프롬프트 지침 (Adobe·클라이언트 — 선택)",
+    "guidelines.label": "프롬프트 지침 (Adobe·클라이언트 — 선택)",
     "guidelines.hint": "Adobe나 클라이언트가 caption·edit_instruction 작성 규칙을 줬다면 여기에 적으세요. 모든 사진 분석에 함께 적용됩니다. 자동 저장 — 한 번만 입력하면 됩니다.",
     "guidelines.placeholder": "예) 캡션은 항상 현재시제 · 브랜드명·로고 언급 금지 · edit_instruction은 명령형 한 문장으로 …",
     "field.scene_size": "씬당 사진 수",
@@ -118,7 +118,7 @@ const I18N = {
     "btn.pick": "Browse…",
     "scan.hint_default": "— pick a folder and we'll scan it.",
     "advanced": "Advanced",
-    "guidelines.summary": "Prompt guidelines (Adobe / client — optional)",
+    "guidelines.label": "Prompt guidelines (Adobe / client — optional)",
     "guidelines.hint": "If Adobe or the client gave you rules for writing caption / edit_instruction, put them here. They apply to every photo. Saved automatically — enter once.",
     "guidelines.placeholder": "e.g. captions always present tense · no brand/logo mentions · edit_instruction as one imperative sentence …",
     "field.scene_size": "Photos per scene",
@@ -925,8 +925,8 @@ async function init() {
     const saved = localStorage.getItem("firefly.guidelines") || "";
     gEl.value = saved;
     if (saved.trim()) {
-      const block = $("#guidelines-block");
-      if (block) block.open = true;   // keep it visible as a reminder
+      const block = $("#advanced-block");
+      if (block) block.open = true;   // keep guidelines visible as a reminder
     }
     gEl.addEventListener("input", () => {
       localStorage.setItem("firefly.guidelines", gEl.value);
