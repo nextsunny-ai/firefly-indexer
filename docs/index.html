@@ -231,7 +231,12 @@
     // latest release tag (public if repo is public) or falls back.
     (async function () {
       try {
-        const r = await fetch("https://api.github.com/repos/nextsunny-ai/firefly-indexer/releases/latest");
+        // cache:no-store + a timestamp param — always resolve the TRUE
+        // latest release, never a stale cached response.
+        const r = await fetch(
+          "https://api.github.com/repos/nextsunny-ai/firefly-indexer/releases/latest?_=" + Date.now(),
+          { cache: "no-store" }
+        );
         if (!r.ok) return;
         const j = await r.json();
         const find = (matcher) => (j.assets || []).find((a) => matcher.test(a.name));
