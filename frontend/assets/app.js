@@ -660,6 +660,8 @@ async function startIndexing() {
     folder_mode:   ($("#folder-mode") && $("#folder-mode").value) || "single",
   };
   if (!req.input_folder || !req.output_xlsx) return;
+  runningEngine = req.vision_engine;   // drives the sub-step panel layout
+  currentSceneId = 0;                  // force a fresh sub-step list this run
 
   indexerRunning = true;
   $("#run-status").removeAttribute("hidden");
@@ -696,23 +698,31 @@ async function startIndexing() {
 // Sub-step state per scene
 let currentSceneId = 0;
 let substepStartTimes = new Map();   // index -> timestamp
+let runningEngine = "claude";        // set by startIndexing
 
 function ensureSubstepList(total, sceneLabel) {
   const wrap = $("#substep");
   wrap.removeAttribute("hidden");
   $("#substep-scene").textContent = sceneLabel;
-  $("#substep-counter").textContent = `0 / ${total + 2}`;
   const ul = $("#substep-list");
   ul.innerHTML = "";
-  // Static plan: prompt build → N x photo analysis → JSON integration
-  const items = [
-    { kind: "prompt_built", label: "프롬프트 빌드 — Claude 호출" },
-  ];
-  for (let i = 1; i <= total; i++) {
-    items.push({ kind: `photo_${i}`, label: `사진 ${i}/${total} 분석` });
+  let items;
+  if (runningEngine === "gemini") {
+    // Gemini analyses a whole scene in one call — no per-photo steps.
+    items = [
+      { kind: "gemini_analyze", label: `Gemini 분석 중 (사진 ${total}장)` },
+      { kind: "saved", label: "Excel 저장 + 진행 기록" },
+    ];
+  } else {
+    // Claude streams per-photo: prompt build → N x photo → JSON integration.
+    items = [{ kind: "prompt_built", label: "프롬프트 빌드 — Claude 호출" }];
+    for (let i = 1; i <= total; i++) {
+      items.push({ kind: `photo_${i}`, label: `사진 ${i}/${total} 분석` });
+    }
+    items.push({ kind: "final_text", label: "씬 통합 JSON 응답" });
+    items.push({ kind: "saved", label: "Excel 저장 + 진행 기록" });
   }
-  items.push({ kind: "final_text", label: "씬 통합 JSON 응답" });
-  items.push({ kind: "saved", label: "Excel 저장 + 진행 기록" });
+  $("#substep-counter").textContent = `0 / ${items.length}`;
 
   for (const it of items) {
     const li = document.createElement("li");
@@ -750,7 +760,12 @@ listen("indexing-progress", (event) => {
   $("#run-cost").textContent = `$${p.total_cost_usd.toFixed(4)}`;
 
   if (p.scene_total > 0) {
-    $("#run-counter").textContent = `${p.scene_done} / ${p.scene_total} 씬 · 현재 scene ${p.current_scene_id} (${p.current_scene_prefix})`;
+    if (p.level === "done") {
+      $("#run-counter").textContent = `✓ 완료 — ${p.scene_done} / ${p.scene_total} 세트`;
+    } else {
+      $("#run-counter").textContent =
+        `${p.scene_done} / ${p.scene_total} 세트 · 진행 중 scene ${p.current_scene_id} (${p.current_scene_prefix})`;
+    }
     const pct = Math.max(2, Math.min(100, ((p.scene_done + (p.substep_total > 0 ? p.substep_done / p.substep_total : 0)) / p.scene_total) * 100));
     $("#progress-bar").style.width = pct + "%";
   }
@@ -763,7 +778,9 @@ listen("indexing-progress", (event) => {
 
   // Sub-step events
   if (p.level === "substep") {
-    if (p.substep_kind === "prompt_built") {
+    if (p.substep_kind === "analyzing") {
+      markSubstep("gemini_analyze", "active");   // Gemini: one call per scene
+    } else if (p.substep_kind === "prompt_built") {
       markSubstep("prompt_built", "done");
     } else if (p.substep_kind === "read_start") {
       markSubstep(`photo_${p.substep_done}`, "active");
@@ -779,6 +796,7 @@ listen("indexing-progress", (event) => {
 
   // Scene complete
   if (p.level === "scene") {
+    markSubstep("gemini_analyze", "done");   // no-op for Claude
     markSubstep("saved", "done");
   }
 
