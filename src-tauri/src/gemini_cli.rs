@@ -1,14 +1,12 @@
 // Gemini CLI subprocess wrapper — the second vision engine.
 //
-// Verified facts (2026-05-19 테스트):
-//   - Gemini CLI = npm package `@google/gemini-cli`, run via `node bundle/gemini.js`.
-//   - Free tier = personal Google account OAuth ("Login with Google"); creds
-//     cached at ~/.gemini/oauth_creds.json (cost 0, like Claude Code).
-//   - Headless: `gemini -p <prompt> --output-format json` → {"response": "..."}.
-//   - Images: referenced inline with `@filename` in the prompt, resolved
-//     against the working directory.
-//   - 결정적: same indexer prompt + Gemini engine = child gender correct where
-//     Claude (Haiku/Sonnet/Opus) misclassified. → engine choice, not prompt.
+// The app SHIPS its own Node.js runtime + the Gemini CLI bundle as bundled
+// resources (src-tauri/resources/gem/, fetched by CI). So the user installs
+// nothing for Gemini — only a one-time browser login. If the bundle is ever
+// missing (dev builds), it falls back to a system-installed gemini.
+//
+// Verified (2026-05-19): same indexer prompt + Gemini engine classifies
+// gender correctly where Claude (Haiku/Sonnet/Opus) misclassified.
 
 use crate::claude_cli::SceneResult;
 use std::path::{Path, PathBuf};
@@ -21,20 +19,28 @@ use tokio::time::timeout;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-/// Locate the `node` executable.
-pub fn find_node() -> Option<PathBuf> {
-    let names: &[&str] = if cfg!(target_os = "windows") {
-        &["node.exe", "node"]
-    } else {
-        &["node"]
-    };
+const NODE_EXE: &str = if cfg!(target_os = "windows") { "node.exe" } else { "node" };
+
+/// The Node binary bundled inside the app (resources/gem/node[.exe]).
+pub fn bundled_node(res_dir: &Path) -> Option<PathBuf> {
+    let p = res_dir.join("resources").join("gem").join(NODE_EXE);
+    p.is_file().then_some(p)
+}
+
+/// The Gemini CLI entry bundled inside the app (resources/gem/cli/bundle/gemini.js).
+pub fn bundled_gemini(res_dir: &Path) -> Option<PathBuf> {
+    let p = res_dir
+        .join("resources").join("gem").join("cli").join("bundle").join("gemini.js");
+    p.is_file().then_some(p)
+}
+
+/// Locate a `node` executable on the system (fallback when not bundled).
+fn system_node() -> Option<PathBuf> {
     if let Some(path_var) = std::env::var_os("PATH") {
         for dir in std::env::split_paths(&path_var) {
-            for name in names {
-                let p = dir.join(name);
-                if p.is_file() {
-                    return Some(p);
-                }
+            let p = dir.join(NODE_EXE);
+            if p.is_file() {
+                return Some(p);
             }
         }
     }
@@ -42,61 +48,54 @@ pub fn find_node() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         cand.push(PathBuf::from("C:\\Program Files\\nodejs\\node.exe"));
-        cand.push(PathBuf::from("C:\\Program Files (x86)\\nodejs\\node.exe"));
     }
     #[cfg(not(target_os = "windows"))]
     {
         cand.push(PathBuf::from("/usr/local/bin/node"));
         cand.push(PathBuf::from("/opt/homebrew/bin/node"));
         cand.push(PathBuf::from("/usr/bin/node"));
-        if let Some(h) = dirs::home_dir() {
-            cand.push(h.join(".nvm/versions/node/current/bin/node"));
-            cand.push(h.join(".volta/bin/node"));
-        }
     }
     cand.into_iter().find(|p| p.is_file())
 }
 
-/// Locate the Gemini CLI bundle (`@google/gemini-cli/bundle/gemini.js`).
-pub fn find_bundle() -> Option<PathBuf> {
+/// Locate a system-installed Gemini CLI bundle (fallback when not bundled).
+fn system_gemini() -> Option<PathBuf> {
     let rel = Path::new("node_modules")
-        .join("@google")
-        .join("gemini-cli")
-        .join("bundle")
-        .join("gemini.js");
-
+        .join("@google").join("gemini-cli").join("bundle").join("gemini.js");
     let mut roots: Vec<PathBuf> = Vec::new();
     #[cfg(target_os = "windows")]
     {
         if let Some(appdata) = std::env::var_os("APPDATA") {
             roots.push(PathBuf::from(&appdata).join("npm"));
         }
-        if let Some(h) = dirs::home_dir() {
-            roots.push(h.join(".npm-global"));
-            roots.push(h.join("AppData").join("Roaming").join("npm"));
-        }
     }
     #[cfg(not(target_os = "windows"))]
     {
         roots.push(PathBuf::from("/usr/local/lib"));
         roots.push(PathBuf::from("/opt/homebrew/lib"));
-        roots.push(PathBuf::from("/usr/lib"));
-        if let Some(h) = dirs::home_dir() {
-            roots.push(h.join(".npm-global").join("lib"));
-            roots.push(h.join(".npm-global"));
-        }
     }
-    for r in roots {
-        let p = r.join(&rel);
-        if p.is_file() {
-            return Some(p);
-        }
+    if let Some(h) = dirs::home_dir() {
+        roots.push(h.join(".npm-global").join("lib"));
+        roots.push(h.join(".npm-global"));
     }
-    None
+    roots.into_iter().map(|r| r.join(&rel)).find(|p| p.is_file())
 }
 
-pub fn is_installed() -> bool {
-    find_node().is_some() && find_bundle().is_some()
+/// Resolve (node, gemini.js) — bundled runtime first, system install second.
+pub fn resolve(res_dir: Option<&Path>) -> Option<(PathBuf, PathBuf)> {
+    if let Some(rd) = res_dir {
+        if let (Some(n), Some(g)) = (bundled_node(rd), bundled_gemini(rd)) {
+            return Some((n, g));
+        }
+    }
+    match (system_node(), system_gemini()) {
+        (Some(n), Some(g)) => Some((n, g)),
+        _ => None,
+    }
+}
+
+pub fn is_installed(res_dir: Option<&Path>) -> bool {
+    resolve(res_dir).is_some()
 }
 
 /// Gemini CLI keeps personal-OAuth credentials in ~/.gemini/oauth_creds.json.
@@ -121,21 +120,20 @@ fn extract_json(text: &str) -> Result<serde_json::Value, String> {
     serde_json::from_str(&body[start..=end]).map_err(|e| format!("Gemini JSON 파싱 실패: {e}"))
 }
 
-/// Run one scene through Gemini. `scene_dir` is the folder holding the
-/// scene's images (the prompt references them as `@filename`); it is also
-/// the process working directory so those refs resolve.
+/// Run one scene through Gemini. `scene_dir` holds the scene's images (the
+/// prompt references them as `@filename`) and is the process working dir.
 pub async fn run_scene(
     user_msg: &str,
     scene_dir: &str,
     timeout_secs: u64,
+    res_dir: Option<&Path>,
 ) -> Result<SceneResult, String> {
-    let node = find_node().ok_or("Node.js를 찾을 수 없습니다 (Gemini CLI 필요).")?;
-    let bundle = find_bundle()
-        .ok_or("Gemini CLI를 찾을 수 없습니다 — Setup에서 설치해주세요.")?;
+    let (node, gemini) = resolve(res_dir)
+        .ok_or("Gemini 런타임을 찾을 수 없습니다 (앱 재설치가 필요할 수 있습니다).")?;
 
     let started = std::time::Instant::now();
     let mut cmd = Command::new(&node);
-    cmd.arg(&bundle)
+    cmd.arg(&gemini)
         .arg("-p").arg(user_msg)
         .arg("--output-format").arg("json")
         .arg("--approval-mode").arg("yolo")
@@ -155,10 +153,8 @@ pub async fn run_scene(
     let stdout = String::from_utf8_lossy(&out.stdout);
     let stderr = String::from_utf8_lossy(&out.stderr);
 
-    // --output-format json prints a single JSON object (after any warnings).
-    let start = stdout.find('{').ok_or_else(|| {
-        format!("Gemini 출력이 비었습니다. {}", stderr.trim())
-    })?;
+    let start = stdout.find('{')
+        .ok_or_else(|| format!("Gemini 출력이 비었습니다. {}", stderr.trim()))?;
     let end = stdout.rfind('}').unwrap_or(stdout.len().saturating_sub(1));
     let outer: serde_json::Value = serde_json::from_str(stdout[start..=end].trim())
         .map_err(|e| format!("Gemini 출력 파싱 실패: {e} — {}", stderr.trim()))?;
@@ -167,15 +163,13 @@ pub async fn run_scene(
         let msg = err.get("message").and_then(|v| v.as_str()).unwrap_or("");
         return Err(format!("Gemini 오류: {msg}"));
     }
-    let resp = outer
-        .get("response")
-        .and_then(|v| v.as_str())
+    let resp = outer.get("response").and_then(|v| v.as_str())
         .ok_or("Gemini 응답에 response 필드가 없습니다")?;
 
     let parsed = extract_json(resp)?;
     Ok(SceneResult {
         parsed,
-        cost_usd: 0.0, // free OAuth tier
+        cost_usd: 0.0,
         duration_ms: started.elapsed().as_millis() as u64,
     })
 }

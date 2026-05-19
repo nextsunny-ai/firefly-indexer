@@ -4,6 +4,9 @@ src-tauri/gen/
 node_modules/
 dist/
 
+# Bundled Gemini runtime — fetched fresh by CI before each build (~50MB)
+src-tauri/resources/gem/
+
 # Tauri signing keys — NEVER commit
 src-tauri/.keys/
 *.key

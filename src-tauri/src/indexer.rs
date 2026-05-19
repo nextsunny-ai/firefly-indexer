@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tokio::sync::mpsc;
 
 static FILENAME_PREFIX_RE: Lazy<Regex> = Lazy::new(|| {
@@ -288,14 +288,15 @@ pub async fn run_indexing<R: tauri::Runtime>(
 ) -> Result<IndexSummary, String> {
     let engine = req.vision_engine.to_ascii_lowercase();
     let nested = req.folder_mode.eq_ignore_ascii_case("nested");
+    let res_dir = app.path().resource_dir().ok();
 
     // ── Preflight: the SELECTED engine must be ready ───────────────────
     if engine == "gemini" {
-        if !gemini_cli::is_installed() {
-            return Err("Gemini CLI가 설치되지 않았습니다 — Setup에서 설치해주세요.".to_string());
+        if !gemini_cli::is_installed(res_dir.as_deref()) {
+            return Err("Gemini 런타임을 찾을 수 없습니다 — 앱을 다시 설치해 주세요.".to_string());
         }
         if !gemini_cli::is_logged_in() {
-            return Err("Gemini CLI 로그인이 필요합니다 — Setup에서 구글 로그인 해주세요.".to_string());
+            return Err("Gemini 로그인이 필요합니다 — Setup에서 구글 로그인 해주세요.".to_string());
         }
     } else {
         if !claude_cli::is_installed() {
@@ -405,7 +406,7 @@ pub async fn run_indexing<R: tauri::Runtime>(
                 substep_done: 0,
                 substep_kind: "analyzing".into(),
             });
-            gemini_cli::run_scene(&user_msg, &scene_dir, req.timeout_secs).await
+            gemini_cli::run_scene(&user_msg, &scene_dir, req.timeout_secs, res_dir.as_deref()).await
         } else {
             let (tx, mut rx) = mpsc::unbounded_channel::<SubStepEvent>();
             let app_clone = app.clone();

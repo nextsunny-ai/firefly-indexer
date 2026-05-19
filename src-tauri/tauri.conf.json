@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Firefly Indexer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "identifier": "com.sunnytoon.firefly-indexer",
   "build": {
     "frontendDist": "../frontend",
@@ -35,6 +35,7 @@
     "active": true,
     "targets": ["nsis", "msi", "app", "dmg"],
     "createUpdaterArtifacts": false,
+    "resources": ["resources/gem/**/*"],
     "publisher": "SUNNY ENTERTAINMENT",
     "copyright": "Copyright © 2026 SUNNY ENTERTAINMENT. All rights reserved.",
     "homepage": "https://nextsunny-ai.github.io/firefly-indexer/",

@@ -41,9 +41,11 @@ pub struct GeminiStatus {
 }
 
 #[tauri::command]
-fn check_gemini_status() -> GeminiStatus {
+fn check_gemini_status(app: tauri::AppHandle) -> GeminiStatus {
+    use tauri::Manager;
+    let res_dir = app.path().resource_dir().ok();
     GeminiStatus {
-        installed: gemini_cli::is_installed(),
+        installed: gemini_cli::is_installed(res_dir.as_deref()),
         logged_in: gemini_cli::is_logged_in(),
     }
 }
@@ -169,29 +171,45 @@ fn preseed_claude_config() {
     }
 }
 
-// ── Setup: open ONE terminal that runs `claude auth login` ─────────────
-// Runs the dedicated login subcommand `claude auth login --claudeai` —
-// goes STRAIGHT to the browser OAuth (no REPL, no `/login` typing, and
-// `--claudeai` pins it to the Claude subscription, never API billing).
-// Returns a handle the frontend keeps: macOS = Terminal window id,
-// Windows = powershell PID. close_setup_terminal() auto-closes it.
-#[tauri::command]
-fn open_setup_terminal(command: String) -> Result<i64, String> {
-    if command != "login" {
-        return Err(format!("unsupported setup command: {command}"));
+// Pre-set the Gemini auth method so `gemini` skips the auth-method picker
+// and goes straight to the Google browser login. Merges into
+// ~/.gemini/settings.json, preserving existing keys (e.g. MCP servers).
+fn preseed_gemini_config() {
+    let Some(home) = home_dir() else { return };
+    let dir = home.join(".gemini");
+    let _ = std::fs::create_dir_all(&dir);
+    let cfg = dir.join("settings.json");
+    let mut root: serde_json::Value = match std::fs::read_to_string(&cfg) {
+        Ok(s) => match serde_json::from_str(&s) {
+            Ok(v) => v,
+            Err(_) => return, // corrupt — do not overwrite the user's file
+        },
+        Err(_) => serde_json::json!({}),
+    };
+    let Some(obj) = root.as_object_mut() else { return };
+    let security = obj.entry("security").or_insert_with(|| serde_json::json!({}));
+    let Some(sobj) = security.as_object_mut() else { return };
+    let auth = sobj.entry("auth").or_insert_with(|| serde_json::json!({}));
+    if let Some(aobj) = auth.as_object_mut() {
+        aobj.insert("selectedType".into(), serde_json::Value::String("oauth-personal".into()));
     }
-    // Silence the claude first-run prompts before the terminal opens.
-    preseed_claude_config();
+    if let Ok(s) = serde_json::to_string_pretty(&root) {
+        let _ = std::fs::write(&cfg, s);
+    }
+}
 
-    let bin = claude_cli::find_bin()
-        .ok_or_else(|| "claude CLI not found — run STEP 01 (install) first.".to_string())?;
-    let bin = bin.to_string_lossy().to_string();
-
+// Open a terminal window running `program args...`. Returns a handle the
+// frontend keeps (macOS = Terminal window id, Windows = powershell PID) so
+// close_setup_terminal() can auto-close it once login is confirmed.
+fn open_terminal_running(program: &str, args: &[String]) -> Result<i64, String> {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
-        let ps = format!("& '{}' auth login --claudeai", bin.replace('\'', "''"));
+        let mut ps = format!("& '{}'", program.replace('\'', "''"));
+        for a in args {
+            ps.push_str(&format!(" '{}'", a.replace('\'', "''")));
+        }
         let child = std::process::Command::new("powershell")
             .args(["-NoExit", "-NoProfile", "-Command", &ps])
             .creation_flags(CREATE_NEW_CONSOLE)
@@ -201,37 +219,75 @@ fn open_setup_terminal(command: String) -> Result<i64, String> {
     }
     #[cfg(target_os = "macos")]
     {
-        let sh_cmd = format!("\"{}\" auth login --claudeai", bin.replace('"', "\\\""));
+        let mut sh = format!("\"{}\"", program.replace('"', "\\\""));
+        for a in args {
+            sh.push_str(&format!(" \"{}\"", a.replace('"', "\\\"")));
+        }
         let script = format!(
             "tell application \"Terminal\"\n\
              activate\n\
              do script \"{}\"\n\
              return id of front window\n\
              end tell",
-            sh_cmd.replace('\\', "\\\\").replace('"', "\\\"")
+            sh.replace('\\', "\\\\").replace('"', "\\\"")
         );
         let out = std::process::Command::new("osascript")
             .args(["-e", &script])
             .output()
             .map_err(|e| e.to_string())?;
-        let id = String::from_utf8_lossy(&out.stdout).trim().parse::<i64>().unwrap_or(0);
-        Ok(id)
+        Ok(String::from_utf8_lossy(&out.stdout).trim().parse::<i64>().unwrap_or(0))
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        let sh_cmd = format!("\"{}\" auth login --claudeai", bin);
+        let mut sh = format!("\"{}\"", program);
+        for a in args {
+            sh.push_str(&format!(" \"{}\"", a));
+        }
         for term in &["gnome-terminal", "konsole", "xterm"] {
             let mut c = std::process::Command::new(term);
             if *term == "gnome-terminal" {
-                c.args(["--", "bash", "-c", &format!("{sh_cmd}; exec bash")]);
+                c.args(["--", "bash", "-c", &format!("{sh}; exec bash")]);
             } else if *term == "konsole" {
-                c.args(["-e", "bash", "-c", &format!("{sh_cmd}; exec bash")]);
+                c.args(["-e", "bash", "-c", &format!("{sh}; exec bash")]);
             } else {
-                c.args(["-hold", "-e", &sh_cmd]);
+                c.args(["-hold", "-e", &sh]);
             }
             if c.spawn().is_ok() { return Ok(0); }
         }
         Err("No supported terminal found (gnome-terminal/konsole/xterm)".to_string())
+    }
+}
+
+// ── Setup: open a login terminal for the chosen engine ─────────────────
+// "login"        → Claude: `claude auth login --claudeai` (browser OAuth).
+// "gemini-login" → Gemini: the bundled `node gemini.js` (Google OAuth).
+// close_setup_terminal() auto-closes the window once login is confirmed.
+#[tauri::command]
+fn open_setup_terminal(app: tauri::AppHandle, command: String) -> Result<i64, String> {
+    match command.as_str() {
+        "login" => {
+            preseed_claude_config();
+            let bin = claude_cli::find_bin()
+                .ok_or_else(|| "claude CLI not found — run STEP 01 (install) first.".to_string())?;
+            let prog = bin.to_string_lossy().into_owned();
+            let args = [
+                "auth".to_string(),
+                "login".to_string(),
+                "--claudeai".to_string(),
+            ];
+            open_terminal_running(&prog, &args)
+        }
+        "gemini-login" => {
+            use tauri::Manager;
+            preseed_gemini_config();
+            let res_dir = app.path().resource_dir().ok();
+            let (node, gem) = gemini_cli::resolve(res_dir.as_deref())
+                .ok_or_else(|| "Gemini 런타임을 찾을 수 없습니다 — 앱을 다시 설치해 주세요.".to_string())?;
+            let prog = node.to_string_lossy().into_owned();
+            let args = [gem.to_string_lossy().into_owned()];
+            open_terminal_running(&prog, &args)
+        }
+        other => Err(format!("unsupported setup command: {other}")),
     }
 }
 

@@ -19,6 +19,8 @@ const I18N = {
     "toast.install_fail": "설치 실패:",
     "toast.login_started": "로그인 창을 열었습니다. 브라우저에서 로그인하시면 창이 자동으로 닫힙니다…",
     "toast.login_window_closed": "로그인 완료 ✓ 로그인 창을 자동으로 닫았습니다.",
+    "toast.gemini_login_started": "Gemini 로그인 창을 열었습니다. 브라우저에서 구글 로그인하시면 창이 자동으로 닫힙니다…",
+    "toast.gemini_done": "Gemini 로그인 완료 ✓ 이제 Index에서 분석 엔진을 Gemini로 쓸 수 있습니다.",
     "toast.install_first": "먼저 STEP 01에서 Claude Code를 설치해주세요.",
     "toast.install_done": "Claude Code 설치 완료 ✓ — 이제 STEP 02 로그인을 진행하세요.",
     "toast.setup_done": "셋업 완료! ✓ 위쪽 Index 메뉴에서 인덱싱을 시작하세요.",
@@ -100,11 +102,8 @@ const I18N = {
     "setup.btn.recheck": "다시 체크",
     "setup.btn.recheck_login": "로그인 상태 다시 체크",
     "setup.gemini.title": "Gemini 엔진 (선택)",
-    "setup.gemini.body": "성별 등 정밀 판별이 중요할 때 = Index 페이지에서 분석 엔진을 Gemini로 고를 수 있습니다. 본인 구글 계정 로그인 = 무료. (Node.js가 필요합니다.)",
-    "setup.gemini.summary": "Gemini CLI 설치·로그인 (복사해서 붙여넣기)",
-    "setup.gemini.hint1": "① 터미널(Mac) 또는 PowerShell(Windows)에서 설치 — Node.js 필요:",
-    "setup.gemini.hint2": "② 로그인 — 아래 입력 → 메뉴에서 \"Login with Google\" 선택 → 브라우저 로그인:",
-    "setup.gemini.hint3": "로그인이 끝나면 아래 \"다시 체크\"를 누르세요.",
+    "setup.gemini.body": "Gemini 엔진은 앱에 내장돼 있습니다 — 따로 설치할 게 없습니다. 성별 등 정밀 판별이 중요할 때 = Index에서 분석 엔진을 Gemini로 고르세요. 아래 버튼으로 본인 구글 계정 로그인만 한 번 하면 됩니다 (무료). 로그인이 끝나면 창은 자동으로 닫힙니다.",
+    "setup.gemini.login_btn": "Gemini 로그인 (구글)",
     "setup.done.title": "✓ 셋업 완료",
     "setup.done.body": "모두 준비됐습니다. Index 페이지에서 인덱싱을 시작하세요.",
     "setup.done.btn": "Index로 이동 →",
@@ -130,6 +129,8 @@ const I18N = {
     "toast.install_fail": "Install failed:",
     "toast.login_started": "Login window opened. Sign in via the browser — the window closes automatically.",
     "toast.login_window_closed": "Signed in ✓ Login window closed automatically.",
+    "toast.gemini_login_started": "Gemini login window opened. Sign in with Google in the browser — the window closes automatically.",
+    "toast.gemini_done": "Gemini sign-in complete ✓ You can now use Gemini as the engine on the Index page.",
     "toast.install_first": "Please install Claude Code in STEP 01 first.",
     "toast.install_done": "Claude Code installed ✓ — now do STEP 02 (sign in).",
     "toast.setup_done": "Setup complete! ✓ Go to the Index menu to start indexing.",
@@ -211,11 +212,8 @@ const I18N = {
     "setup.btn.recheck": "Recheck",
     "setup.btn.recheck_login": "Recheck login status",
     "setup.gemini.title": "Gemini engine (optional)",
-    "setup.gemini.body": "When fine calls like gender matter, you can pick Gemini as the engine on the Index page. Runs on your own Google login — free. (Node.js is required.)",
-    "setup.gemini.summary": "Install & sign in to Gemini CLI (copy & paste)",
-    "setup.gemini.hint1": "① Install in a terminal (Mac) or PowerShell (Windows) — Node.js required:",
-    "setup.gemini.hint2": "② Sign in — run this, choose \"Login with Google\", then sign in via the browser:",
-    "setup.gemini.hint3": "When sign-in is done, click \"Recheck\" below.",
+    "setup.gemini.body": "The Gemini engine is built into the app — nothing to install. When fine calls like gender matter, pick Gemini as the engine on the Index page. Just sign in once with your Google account using the button below (free). The window closes itself when sign-in is done.",
+    "setup.gemini.login_btn": "Sign in to Gemini (Google)",
     "setup.done.title": "✓ Setup complete",
     "setup.done.body": "All set. Go to the Index page and start indexing.",
     "setup.done.btn": "Go to Index →",
@@ -370,6 +368,29 @@ function startSetupPolling() {
     }
     // Stop polling after ~5 minutes to avoid endless background work
     if (ticks > 100) { clearInterval(_setupPollTimer); _setupPollTimer = null; }
+  }, 3000);
+}
+
+// Gemini login polling — closes the login terminal once OAuth completes.
+let _geminiTermHandle = 0;
+let _geminiPollTimer = null;
+function startGeminiPolling() {
+  if (_geminiPollTimer) return;
+  let ticks = 0;
+  _geminiPollTimer = setInterval(async () => {
+    ticks++;
+    const g = await invoke("check_gemini_status").catch(() => null);
+    if (g && g.logged_in) {
+      if (_geminiTermHandle) {
+        invoke("close_setup_terminal", { handle: _geminiTermHandle }).catch(() => {});
+        _geminiTermHandle = 0;
+      }
+      clearInterval(_geminiPollTimer);
+      _geminiPollTimer = null;
+      toast(t("toast.gemini_done"), "ok");
+      checkCliStatus();
+    }
+    if (ticks > 100) { clearInterval(_geminiPollTimer); _geminiPollTimer = null; }
   }, 3000);
 }
 
@@ -1045,6 +1066,20 @@ async function init() {
     checkCliStatus();
   });
   $("#recheck-gemini")?.addEventListener("click", checkCliStatus);
+  $("#gemini-login")?.addEventListener("click", async () => {
+    const g = await invoke("check_gemini_status").catch(() => null);
+    if (g && g.logged_in) {
+      toast(t("toast.already_logged_in"), "ok");
+      checkCliStatus();
+      return;
+    }
+    try {
+      // Gemini is bundled in the app — only the browser OAuth needs a window.
+      _geminiTermHandle = (await invoke("open_setup_terminal", { command: "gemini-login" })) || 0;
+      toast(t("toast.gemini_login_started"), "info");
+      startGeminiPolling();
+    } catch (e) { toast(t("toast.terminal_fail") + " " + e, "err"); }
+  });
 
   // Engine + folder-mode selectors — persisted choices.
   const engineEl = $("#vision-engine");

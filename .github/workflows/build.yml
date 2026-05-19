@@ -49,6 +49,41 @@ jobs:
       - name: Install npm deps
         run: npm ci
 
+      # ── Bundle the Gemini engine INTO the app ─────────────────────────
+      # Ships a Node.js runtime + the Gemini CLI inside the app itself, so
+      # users never install anything for the Gemini engine — only a
+      # one-time browser login. NODE_VER is pinned for reproducibility.
+      - name: Bundle Gemini runtime (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ver = "22.12.0"
+          $gem = "src-tauri/resources/gem"
+          New-Item -ItemType Directory -Force -Path $gem | Out-Null
+          Invoke-WebRequest "https://nodejs.org/dist/v$ver/node-v$ver-win-x64.zip" -OutFile "$env:TEMP/node.zip"
+          Expand-Archive "$env:TEMP/node.zip" -DestinationPath "$env:TEMP/nodex" -Force
+          Copy-Item "$env:TEMP/nodex/node-v$ver-win-x64/node.exe" "$gem/node.exe"
+          npm install --prefix "$env:TEMP/gem" @google/gemini-cli
+          Copy-Item -Recurse "$env:TEMP/gem/node_modules/@google/gemini-cli" "$gem/cli"
+          Write-Host "bundled:" (Get-ChildItem -Recurse $gem | Measure-Object).Count "files"
+
+      - name: Bundle Gemini runtime (macOS)
+        if: matrix.platform.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -e
+          ver=22.12.0
+          gem=src-tauri/resources/gem
+          mkdir -p "$gem"
+          if [ "${{ matrix.platform.target }}" = "aarch64-apple-darwin" ]; then arch=darwin-arm64; else arch=darwin-x64; fi
+          curl -fsSL -o /tmp/node.tgz "https://nodejs.org/dist/v$ver/node-v$ver-$arch.tar.gz"
+          tar -xzf /tmp/node.tgz -C /tmp
+          cp "/tmp/node-v$ver-$arch/bin/node" "$gem/node"
+          chmod +x "$gem/node"
+          npm install --prefix /tmp/gem @google/gemini-cli
+          cp -R /tmp/gem/node_modules/@google/gemini-cli "$gem/cli"
+          echo "bundled $(find "$gem" -type f | wc -l) files"
+
       - name: Build (Tauri)
         run: npx tauri build --target ${{ matrix.platform.target }}
 
