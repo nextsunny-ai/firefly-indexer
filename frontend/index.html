@@ -55,9 +55,27 @@
     </div>
 
     <section class="card card--main">
+      <div class="row opt-grid">
+        <div class="field">
+          <label class="field__label" data-i18n="engine.label">분석 엔진</label>
+          <select id="vision-engine">
+            <option value="claude" data-i18n="engine.claude">Claude (본인 구독)</option>
+            <option value="gemini" data-i18n="engine.gemini">Gemini (구글 로그인)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" data-i18n="foldermode.label">폴더 처리 방식</label>
+          <select id="folder-mode">
+            <option value="single" data-i18n="foldermode.single">단일 폴더 — 사진이 바로 든 폴더</option>
+            <option value="nested" data-i18n="foldermode.nested">전체 폴더 — 하위 폴더 전부, 연속 번호</option>
+          </select>
+        </div>
+      </div>
+      <p class="field__hint" id="engine-hint" data-i18n="engine.hint_claude">Claude — 본인 Claude 구독으로 작동 (비용 0).</p>
+
       <div class="row">
         <div class="field field--grow">
-          <label class="field__label" data-i18n="field.input_folder">입력 폴더</label>
+          <label class="field__label" id="input-folder-label" data-i18n="field.input_folder">입력 폴더</label>
           <div class="field__row">
             <input class="field__input" id="input-folder" type="text" data-i18n-placeholder="field.input_placeholder" placeholder="사진들이 들어있는 폴더 경로" />
             <button type="button" class="btn btn--secondary" id="pick-input" data-i18n="btn.pick">찾기…</button>
@@ -367,6 +385,32 @@
           <button type="button" class="btn btn--ghost copy-btn" data-copy="login-cmd-2" data-i18n="btn.copy">복사</button>
         </div>
       </details>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <span class="card__step">G</span>
+        <h2 class="card__title" data-i18n="setup.gemini.title">Gemini 엔진 (선택)</h2>
+        <span class="badge" id="badge-gemini">CHECKING</span>
+      </div>
+      <p class="card__body" data-i18n="setup.gemini.body">성별 등 정밀 판별이 중요할 때 = Index 페이지에서 분석 엔진을 Gemini로 고를 수 있습니다. 본인 구글 계정 로그인 = 무료. (Node.js가 필요합니다.)</p>
+      <details class="advanced">
+        <summary data-i18n="setup.gemini.summary">Gemini CLI 설치·로그인 (복사해서 붙여넣기)</summary>
+        <p class="field__hint" data-i18n="setup.gemini.hint1">① 터미널(Mac) 또는 PowerShell(Windows)에서 설치 — Node.js 필요:</p>
+        <div class="code-row">
+          <code class="code-inline" id="gem-cmd-install">npm install -g @google/gemini-cli</code>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="gem-cmd-install" data-i18n="btn.copy">복사</button>
+        </div>
+        <p class="field__hint" data-i18n="setup.gemini.hint2">② 로그인 — 아래 입력 → 메뉴에서 "Login with Google" 선택 → 브라우저 로그인:</p>
+        <div class="code-row">
+          <code class="code-inline" id="gem-cmd-login">gemini</code>
+          <button type="button" class="btn btn--ghost copy-btn" data-copy="gem-cmd-login" data-i18n="btn.copy">복사</button>
+        </div>
+        <p class="field__hint" data-i18n="setup.gemini.hint3">로그인이 끝나면 아래 "다시 체크"를 누르세요.</p>
+      </details>
+      <div class="action-bar">
+        <button type="button" class="btn btn--ghost" id="recheck-gemini" data-i18n="setup.btn.recheck">다시 체크</button>
+      </div>
     </section>
 
     <section class="card" id="setup-done-card" hidden>

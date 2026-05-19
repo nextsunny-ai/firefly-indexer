@@ -1,4 +1,5 @@
 mod claude_cli;
+mod gemini_cli;
 mod prompts;
 mod naming;
 mod excel;
@@ -29,6 +30,21 @@ async fn check_claude_status() -> CliStatus {
         bin_path: bin.map(|p| p.to_string_lossy().to_string()),
         install_hint: "Open a terminal and run:  npm install -g @anthropic-ai/claude-code".to_string(),
         login_hint:   "Open a terminal and run:  claude /login   (then sign into your Pro/Max account)".to_string(),
+    }
+}
+
+// ── Gemini engine status ──────────────────────────────────────────────
+#[derive(Debug, Serialize)]
+pub struct GeminiStatus {
+    pub installed: bool,
+    pub logged_in: bool,
+}
+
+#[tauri::command]
+fn check_gemini_status() -> GeminiStatus {
+    GeminiStatus {
+        installed: gemini_cli::is_installed(),
+        logged_in: gemini_cli::is_logged_in(),
     }
 }
 
@@ -315,6 +331,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             check_claude_status,
+            check_gemini_status,
             scan_folder,
             apply_rename,
             run_indexing,

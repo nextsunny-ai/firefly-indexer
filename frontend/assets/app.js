@@ -24,11 +24,22 @@ const I18N = {
     "toast.setup_done": "셋업 완료! ✓ 위쪽 Index 메뉴에서 인덱싱을 시작하세요.",
     "toast.terminal_fail": "터미널 실행 실패:",
     "field.input_folder": "입력 폴더",
+    "field.input_folder_nested": "입력 폴더 (부모 폴더)",
     "field.input_placeholder": "사진들이 들어있는 폴더 경로",
     "field.output_xlsx": "출력 Excel",
     "field.output_placeholder": "자동 제안됨",
     "btn.pick": "찾기…",
     "scan.hint_default": "— 폴더를 선택하면 자동 스캔합니다.",
+    "scan.hint_nested": "— 하위 폴더를 모두 가진 부모 폴더를 선택하세요. 폴더 하나당 한 세트로 처리됩니다.",
+    "scan.hint_nested_picked": "전체 폴더 모드 — 시작하면 하위 폴더를 전부 처리합니다 (폴더당 한 세트).",
+    "engine.label": "분석 엔진",
+    "engine.claude": "Claude (본인 구독)",
+    "engine.gemini": "Gemini (구글 로그인)",
+    "engine.hint_claude": "Claude — 본인 Claude 구독으로 작동 (비용 0).",
+    "engine.hint_gemini": "Gemini — 본인 구글 로그인으로 작동 (무료). 성별 등 정밀 판별에 유리합니다.",
+    "foldermode.label": "폴더 처리 방식",
+    "foldermode.single": "단일 폴더 — 사진이 바로 든 폴더",
+    "foldermode.nested": "전체 폴더 — 하위 폴더 전부, 연속 번호",
     "advanced": "고급 설정",
     "guidelines.label": "프롬프트 지침 (Adobe·클라이언트 — 선택)",
     "guidelines.hint": "Adobe나 클라이언트가 caption·edit_instruction 작성 규칙을 줬다면 여기에 적으세요. 모든 사진 분석에 함께 적용됩니다. 자동 저장 — 한 번만 입력하면 됩니다.",
@@ -88,6 +99,12 @@ const I18N = {
     "toast.override_warn": "경고: 로그인이 확인되지 않았습니다. 인덱싱 시 실패할 수 있습니다 — STEP 02 로그인을 먼저 끝내세요.",
     "setup.btn.recheck": "다시 체크",
     "setup.btn.recheck_login": "로그인 상태 다시 체크",
+    "setup.gemini.title": "Gemini 엔진 (선택)",
+    "setup.gemini.body": "성별 등 정밀 판별이 중요할 때 = Index 페이지에서 분석 엔진을 Gemini로 고를 수 있습니다. 본인 구글 계정 로그인 = 무료. (Node.js가 필요합니다.)",
+    "setup.gemini.summary": "Gemini CLI 설치·로그인 (복사해서 붙여넣기)",
+    "setup.gemini.hint1": "① 터미널(Mac) 또는 PowerShell(Windows)에서 설치 — Node.js 필요:",
+    "setup.gemini.hint2": "② 로그인 — 아래 입력 → 메뉴에서 \"Login with Google\" 선택 → 브라우저 로그인:",
+    "setup.gemini.hint3": "로그인이 끝나면 아래 \"다시 체크\"를 누르세요.",
     "setup.done.title": "✓ 셋업 완료",
     "setup.done.body": "모두 준비됐습니다. Index 페이지에서 인덱싱을 시작하세요.",
     "setup.done.btn": "Index로 이동 →",
@@ -118,11 +135,22 @@ const I18N = {
     "toast.setup_done": "Setup complete! ✓ Go to the Index menu to start indexing.",
     "toast.terminal_fail": "Failed to open terminal:",
     "field.input_folder": "Input folder",
+    "field.input_folder_nested": "Input folder (parent folder)",
     "field.input_placeholder": "Path to a folder containing photos",
     "field.output_xlsx": "Output Excel",
     "field.output_placeholder": "Auto-suggested",
     "btn.pick": "Browse…",
     "scan.hint_default": "— pick a folder and we'll scan it.",
+    "scan.hint_nested": "— pick the parent folder that holds all the sub-folders. Each folder is processed as one set.",
+    "scan.hint_nested_picked": "All-folders mode — every sub-folder is processed when you start (one set per folder).",
+    "engine.label": "Vision engine",
+    "engine.claude": "Claude (your subscription)",
+    "engine.gemini": "Gemini (Google login)",
+    "engine.hint_claude": "Claude — runs on your own Claude subscription (no cost).",
+    "engine.hint_gemini": "Gemini — runs on your Google login (free). Stronger at fine calls like gender.",
+    "foldermode.label": "Folder mode",
+    "foldermode.single": "Single folder — photos directly inside",
+    "foldermode.nested": "All folders — every sub-folder, continuous numbering",
     "advanced": "Advanced",
     "guidelines.label": "Prompt guidelines (Adobe / client — optional)",
     "guidelines.hint": "If Adobe or the client gave you rules for writing caption / edit_instruction, put them here. They apply to every photo. Saved automatically — enter once.",
@@ -182,6 +210,12 @@ const I18N = {
     "toast.override_warn": "Warning: login is not verified. Indexing may fail — finish STEP 02 sign-in first.",
     "setup.btn.recheck": "Recheck",
     "setup.btn.recheck_login": "Recheck login status",
+    "setup.gemini.title": "Gemini engine (optional)",
+    "setup.gemini.body": "When fine calls like gender matter, you can pick Gemini as the engine on the Index page. Runs on your own Google login — free. (Node.js is required.)",
+    "setup.gemini.summary": "Install & sign in to Gemini CLI (copy & paste)",
+    "setup.gemini.hint1": "① Install in a terminal (Mac) or PowerShell (Windows) — Node.js required:",
+    "setup.gemini.hint2": "② Sign in — run this, choose \"Login with Google\", then sign in via the browser:",
+    "setup.gemini.hint3": "When sign-in is done, click \"Recheck\" below.",
     "setup.done.title": "✓ Setup complete",
     "setup.done.body": "All set. Go to the Index page and start indexing.",
     "setup.done.btn": "Go to Index →",
@@ -349,23 +383,57 @@ function updateSetupDoneCard(s) {
   if (manualReset) manualReset.toggleAttribute("hidden", !override);
 }
 
+function getEngine() {
+  return ($("#vision-engine") && $("#vision-engine").value) || "claude";
+}
+
+function applyEngineHint() {
+  const h = $("#engine-hint");
+  if (h) h.textContent = getEngine() === "gemini"
+    ? t("engine.hint_gemini") : t("engine.hint_claude");
+}
+
+function applyModeHint() {
+  const nested = $("#folder-mode") && $("#folder-mode").value === "nested";
+  const lbl = $("#input-folder-label");
+  if (lbl) lbl.textContent = nested ? t("field.input_folder_nested") : t("field.input_folder");
+  const sh = $("#scan-hint");
+  if (sh && !($("#input-folder") && $("#input-folder").value.trim()))
+    sh.textContent = nested ? t("scan.hint_nested") : t("scan.hint_default");
+  const ss = $("#scene-size");
+  if (ss) ss.disabled = !!nested;   // scene_size is unused in nested mode
+}
+
 async function checkCliStatus() {
   setStatusDot("busy", t("status.checking"));
   try {
-    const s = await invoke("check_claude_status");
-    setBadge($("#badge-install"), s.installed ? "ok" : "err", s.installed ? "INSTALLED" : "NOT FOUND");
-    setBadge($("#badge-login"),   s.logged_in ? "ok" : "warn", s.logged_in ? "LOGGED IN" : "NOT LOGGED IN");
+    // Claude — Setup STEP 01/02 badges
+    const c = await invoke("check_claude_status");
+    setBadge($("#badge-install"), c.installed ? "ok" : "err", c.installed ? "INSTALLED" : "NOT FOUND");
+    setBadge($("#badge-login"),   c.logged_in ? "ok" : "warn", c.logged_in ? "LOGGED IN" : "NOT LOGGED IN");
 
-    const override = isManuallyOverridden();
-    if (override)                     setStatusDot("ok",   t("status.ready_manual"));
-    else if (s.installed && s.logged_in) setStatusDot("ok",   t("status.ready"));
-    else if (s.installed)            setStatusDot("warn", t("status.need_login"));
-    else                              setStatusDot("err",  t("status.need_install"));
+    // Gemini — Setup Gemini card badge
+    let g = null;
+    try { g = await invoke("check_gemini_status"); } catch {}
+    if (g && $("#badge-gemini")) {
+      const ready = g.installed && g.logged_in;
+      setBadge($("#badge-gemini"), ready ? "ok" : (g.installed ? "warn" : "err"),
+               ready ? "READY" : (g.installed ? "NEED LOGIN" : "NOT FOUND"));
+    }
 
-    updateSetupBanner(s);
-    updateSetupDoneCard(s);
+    // top-right dot + start gating reflect the SELECTED engine
+    const sel = getEngine() === "gemini" ? (g || { installed: false, logged_in: false }) : c;
+    if (isManuallyOverridden())            setStatusDot("ok",   t("status.ready_manual"));
+    else if (sel.installed && sel.logged_in) setStatusDot("ok",   t("status.ready"));
+    else if (sel.installed)                setStatusDot("warn", t("status.need_login"));
+    else                                    setStatusDot("err",  t("status.need_install"));
+
+    window._claudeStatus = c;
+    window._geminiStatus = g;
+    updateSetupBanner(sel);
+    updateSetupDoneCard(c);
     updateStartButton();
-    return s;
+    return sel;
   } catch (e) {
     setStatusDot("err", String(e));
     return null;
@@ -401,7 +469,13 @@ function updateStartButton() {
 async function scanInputFolderInline() {
   const folder = $("#input-folder").value.trim();
   if (!folder) {
-    $("#scan-hint").textContent = "— 폴더를 선택하면 자동 스캔합니다.";
+    applyModeHint();
+    return;
+  }
+  // Nested mode: the chosen folder is a PARENT — its images live in
+  // sub-folders, so a flat scan would wrongly report 0. Skip it.
+  if ($("#folder-mode") && $("#folder-mode").value === "nested") {
+    $("#scan-hint").textContent = t("scan.hint_nested_picked");
     return;
   }
   try {
@@ -582,6 +656,8 @@ async function startIndexing() {
     resume:       $("#resume").checked,
     output_lang:  ($("#output-lang") && $("#output-lang").value) || "en",
     custom_guidelines: ($("#custom-guidelines") && $("#custom-guidelines").value.trim()) || "",
+    vision_engine: ($("#vision-engine") && $("#vision-engine").value) || "claude",
+    folder_mode:   ($("#folder-mode") && $("#folder-mode").value) || "single",
   };
   if (!req.input_folder || !req.output_xlsx) return;
 
@@ -803,6 +879,8 @@ async function init() {
     b.addEventListener("click", () => {
       applyLang(b.dataset.lang);
       // Refresh dynamic strings that aren't bound via data-i18n
+      applyEngineHint();
+      applyModeHint();
       checkCliStatus();
     });
   });
@@ -948,6 +1026,29 @@ async function init() {
     setManualOverride(false);
     checkCliStatus();
   });
+  $("#recheck-gemini")?.addEventListener("click", checkCliStatus);
+
+  // Engine + folder-mode selectors — persisted choices.
+  const engineEl = $("#vision-engine");
+  if (engineEl) {
+    engineEl.value = localStorage.getItem("firefly.engine") || "claude";
+    engineEl.addEventListener("change", () => {
+      localStorage.setItem("firefly.engine", engineEl.value);
+      applyEngineHint();
+      checkCliStatus();
+    });
+  }
+  const modeEl = $("#folder-mode");
+  if (modeEl) {
+    modeEl.value = localStorage.getItem("firefly.foldermode") || "single";
+    modeEl.addEventListener("change", () => {
+      localStorage.setItem("firefly.foldermode", modeEl.value);
+      applyModeHint();
+      scanInputFolderInline();   // re-evaluate the hint for the current folder
+    });
+  }
+  applyEngineHint();
+  applyModeHint();
 
   // Prompt guidelines — persisted, set-once. Restore + auto-save.
   const gEl = $("#custom-guidelines");

@@ -81,21 +81,37 @@ const SPEC_BODY: &str = r#"REQUIRED OUTPUT JSON SHAPE:
 # Output
 - Return ONLY the JSON object. No prose. No markdown fence. No explanation."#;
 
-/// Build the per-scene user message. `image_paths` are absolute paths in the
-/// order they should appear (shotid 1..N).
+/// Build the per-scene user message.
+///
+/// `image_paths` are absolute paths in shotid order (1..N). `engine`
+/// selects the image-delivery convention:
+///   - "claude" — Claude reads each absolute path with the Read tool.
+///   - "gemini" — Gemini receives each image inline via an `@filename`
+///     reference, resolved against the process working directory (which
+///     the caller sets to the scene's folder).
 pub fn build_user_message(
     image_paths: &[String],
     scene_prefix: &str,
     existing_characters: &serde_json::Value,
     output_lang: &str,
     custom_guidelines: &str,
+    engine: &str,
 ) -> String {
     let db_json = serde_json::to_string(existing_characters).unwrap_or_else(|_| "[]".to_string());
     let lang_directive = match output_lang {
         "ko" => "★ LANGUAGE OVERRIDE: Despite the spec saying ENGLISH, write `caption` and `edit_instruction` in NATURAL KOREAN (자연스러운 한국어 1문장, 15-30 단어 분량). All other rules (title pattern, character_id format, JSON shape) stay the same.",
         _ => "Language: write `caption` and `edit_instruction` in ENGLISH as specified.",
     };
+    let is_gemini = engine.eq_ignore_ascii_case("gemini");
+
     let mut lines: Vec<String> = Vec::new();
+    if is_gemini {
+        // Gemini gets no separate --system-prompt; fold the role in.
+        lines.push("You are a strict JSON formatter. Look at the attached images, \
+            then return ONLY a valid JSON object matching the schema below. \
+            No prose, no explanation, no markdown code fence.".to_string());
+        lines.push(String::new());
+    }
     lines.push(format!("scene_prefix = {scene_prefix}"));
     lines.push(format!("image_count = {}", image_paths.len()));
     lines.push(String::new());
@@ -112,9 +128,21 @@ pub fn build_user_message(
     lines.push(String::new());
     lines.push(format!("Existing character DB (JSON array): {db_json}"));
     lines.push(String::new());
-    lines.push("Use the Read tool to view each image in the order listed, then produce the JSON:".to_string());
-    for (i, p) in image_paths.iter().enumerate() {
-        lines.push(format!("  shotid={}  ->  {}", i + 1, p));
+
+    if is_gemini {
+        lines.push("The images for this scene, in shotid order 1..N:".to_string());
+        for (i, p) in image_paths.iter().enumerate() {
+            let base = std::path::Path::new(p)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(p);
+            lines.push(format!("  shotid={}  @{}", i + 1, base));
+        }
+    } else {
+        lines.push("Use the Read tool to view each image in the order listed, then produce the JSON:".to_string());
+        for (i, p) in image_paths.iter().enumerate() {
+            lines.push(format!("  shotid={}  ->  {}", i + 1, p));
+        }
     }
     lines.push(String::new());
     lines.push("Return ONLY the JSON object. No prose.".to_string());
